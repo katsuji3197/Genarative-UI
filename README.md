@@ -1,36 +1,130 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UIパーソナライズ評価用アプリケーション
 
-## Getting Started
+Next.jsを用いた動的JSX生成によるUIパーソナライズがユーザーエクスペリエンスに与える影響を評価するための実験用ウェブアプリケーションです。
 
-First, run the development server:
+## 機能
+
+- 事前アンケートによるユーザー特性の収集
+- Gemini APIを使用したUI構成の動的生成
+- プロジェクトダッシュボードの表示
+- プロフィール設定画面でのユーザー名変更タスク
+- 事後アンケートによる主観評価の収集
+- 実験データの自動収集とCSVエクスポート
+- 実験群/統制群の切り替え機能
+
+## セットアップ
+
+### 1. 依存関係のインストール
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. 環境変数の設定
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.local`ファイルを作成し、以下の環境変数を設定してください：
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+# Gemini APIキー
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
 
-## Learn More
+# 実験モード (experimental または control)
+NEXT_PUBLIC_EXPERIMENT_MODE=experimental
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. 開発サーバーの起動
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 使用方法
 
-## Deploy on Vercel
+### 実験群モード (experimental)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# 環境変数で設定
+NEXT_PUBLIC_EXPERIMENT_MODE=experimental
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# またはURLパラメータで設定
+http://localhost:3000?mode=experimental
+```
+
+### 統制群モード (control)
+
+```bash
+# 環境変数で設定
+NEXT_PUBLIC_EXPERIMENT_MODE=control
+
+# またはURLパラメータで設定
+http://localhost:3000?mode=control
+```
+
+## アーキテクチャ
+
+### コンポーネント構成
+
+- `PreSurveyModal`: 事前アンケートモーダル
+- `Dashboard`: プロジェクトダッシュボード画面
+- `ProfileSettings`: プロフィール設定画面
+- `PostSurveyModal`: 事後アンケートモーダル
+
+### 主要ファイル
+
+- `src/types/index.ts`: TypeScript型定義
+- `src/hooks/useExperimentData.ts`: 実験データ管理フック
+- `src/lib/gemini.ts`: Gemini API連携
+- `src/lib/experimentMode.ts`: 実験モード管理
+- `src/config/personalization.json`: パーソナライズ設定
+
+## 実験フロー
+
+1. 実験者が実験群/統制群を設定
+2. 参加者がアプリケーションにアクセス
+3. 実験群・統制群に関わらず事前アンケートを実施
+4. 実験群：Gemini APIでUI構成を決定、統制群：標準スタイルを使用
+5. プロジェクトダッシュボードを表示
+6. プロフィール設定画面でユーザー名変更タスクを実行
+7. 事後アンケートを実施
+8. 実験データをCSVファイルとしてダウンロード
+
+## データ収集
+
+以下のデータが自動的に収集されます：
+
+- 参加者ID
+- 実験群/統制群の区別
+- 適用されたUI構成
+- 事前アンケートの回答
+- 各画面での滞在時間
+- タスク完了時間
+- 総クリック数
+- タスク成功/失敗
+- 事後アンケートの回答
+
+## 技術仕様
+
+- **フレームワーク**: Next.js 15
+- **言語**: TypeScript
+- **スタイリング**: Tailwind CSS
+- **UIライブラリ**: GitHub Primer
+- **API**: Gemini API
+- **パッケージマネージャー**: pnpm
+
+## 開発者向け情報
+
+### デバッグ情報
+
+開発モードでは、画面右下にデバッグ情報が表示されます：
+
+- 実験モード
+- 参加者ID
+- 現在のクリック数
+
+### カスタマイズ
+
+パーソナライズ設定は `src/config/personalization.json` で変更できます。各スタイルバリエーション（standard, novice, expert）のTailwind CSSクラスを定義しています。
+
+## ライセンス
+
+MIT License

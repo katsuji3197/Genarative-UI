@@ -1,0 +1,40 @@
+{
+  "layout": {
+    "novice": "space-y-10", 
+    "standard": "space-y-6",
+    "expert": "space-y-3"
+  },
+  "text": {
+    "novice": "text-2xl leading-relaxed font-semibold",
+    "standard": "text-base leading-normal",
+    "expert": "text-sm leading-snug"
+  },
+  "button": {
+    "novice": "py-4 px-8 text-xl rounded-xl font-bold shadow-md",
+    "standard": "py-2.5 px-5 text-base rounded-md font-medium",
+    "expert": "py-1.5 px-3 text-sm rounded font-medium hover:bg-gray-100"
+  },
+  "input": {
+    "novice": "h-16 px-5 text-xl rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500",
+    "standard": "h-11 px-4 text-base rounded-md border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500",
+    "expert": "h-9 px-2 text-sm rounded border border-gray-300 focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
+  },
+  "description": {
+    "novice": "block text-gray-700 mb-3 font-medium text-lg",
+    "standard": "block text-gray-600 mb-2 text-sm",
+    "expert": "sr-only"
+  }
+  ,
+  "presentation": {
+    "global": "icon",
+    "buttons": {
+      "menu": "icon",
+      "addTask": "icon",
+      "default": "icon"
+    },
+    "taskAction": {
+      "default": "inline",
+      "modes": ["inline", "menu", "icon-only"]
+    }
+  }
+}

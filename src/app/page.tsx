@@ -1,103 +1,446 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { PreSurveyModal } from "@/components/PreSurveyModal";
+import Dashboard from "../components/Dashboard";
+import { ProfileSettings } from "@/components/ProfileSettings";
+import { PostSurveyModal } from "@/components/PostSurveyModal";
+import { useExperimentData } from "@/hooks/useExperimentData";
+import { experimentModeService } from "@/lib/experimentMode";
+import { geminiService } from "@/lib/gemini";
+import { UIConfig, User, PreSurveyAnswers, PostSurveyAnswers, Task } from "@/types";
+import LoadingScreen from "@/components/LoadingScreen";
+import RightDrawerMenu from "@/components/RightDrawerMenu";
+import NotificationsPage from "@/components/NotificationsPage";
+import HelpPage from "@/components/HelpPage";
+import AboutPage from "@/components/AboutPage";
+
+type AppState =
+  | "pre-survey"
+  | "dashboard"
+  | "profile"
+  | "notifications"
+  | "help"
+  | "about"
+  | "post-survey"
+  | "completed";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [appState, setAppState] = useState<AppState>("pre-survey");
+  const [showPreSurvey, setShowPreSurvey] = useState(false);
+  const [showPostSurvey, setShowPostSurvey] = useState(false);
+  const [uiConfig, setUiConfig] = useState<UIConfig>({
+    layout: "standard",
+    text: "standard",
+    button: "standard",
+    input: "standard",
+    description: "standard",
+  });
+  const [user, setUser] = useState<User>({
+    id: "demo-user",
+    name: "サンプルユーザー",
+    email: "sample@example.com",
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const [participantId, setParticipantId] = useState<string>('');
+  const experimentData = useExperimentData(participantId);
+  // カンバンのタスク状態を保持
+  const [experimentTasks, setExperimentTasks] = useState<Task[] | null>(null);
+
+  // 完了済みタスクIDの集合（カンバン個別タスクやその他識別子）
+  const [completedTaskIds, setCompletedTaskIds] = useState<Record<string, boolean>>({});
+  // 実験完了条件（チェックリスト）
+  const [experimentConditions, setExperimentConditions] = useState<Record<string, boolean>>({
+    username_change: false,
+    kanban_drag: false,
+    kanban_edit: false,
+    kanban_delete: false,
+    kanban_add: false,
+  });
+  // ドロワーに表示するラベル
+  const conditionLabels: Record<string, string> = {
+    username_change: 'ユーザー名を変更',
+    kanban_drag: 'カンバンでドラッグ移動',
+    kanban_edit: 'カンバンで編集',
+    kanban_delete: 'カンバンで削除',
+    kanban_add: 'カンバンで追加',
+  };
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const openTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const clearOpenTimer = () => {
+    if (openTimerRef.current) {
+      clearTimeout(openTimerRef.current);
+      openTimerRef.current = null;
+    }
+  };
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const openDrawerWithDelay = (delay = 200) => {
+    clearCloseTimer();
+    if (isDrawerOpen) return;
+    clearOpenTimer();
+    openTimerRef.current = window.setTimeout(() => {
+      setIsDrawerOpen(true);
+      openTimerRef.current = null;
+    }, delay);
+  };
+
+  const closeDrawerWithDelay = (delay = 300) => {
+    clearOpenTimer();
+    if (!isDrawerOpen) return;
+    clearCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setIsDrawerOpen(false);
+      closeTimerRef.current = null;
+    }, delay);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearOpenTimer();
+      clearCloseTimer();
+    };
+  }, []);
+  const [postSurveyShown, setPostSurveyShown] = useState(false);
+  const [isUILoading, setIsUILoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('');
+
+  // タスクの進捗変更を受け取るハンドラ
+  const handleTasksChange = useCallback((tasks: Task[]) => {
+    setExperimentTasks(tasks);
+    // 初期状態で完了しているタスクを completedTaskIds に反映
+    const initial: Record<string, boolean> = {};
+    tasks.forEach((t) => {
+      initial[t.id] = t.status === 'completed';
+    });
+    setCompletedTaskIds((prev) => ({ ...initial, ...prev }));
+  }, []);
+
+  // Dashboard から実験アクション通知を受け取る
+  const handleExperimentAction = useCallback((actionKey: string) => {
+    setExperimentConditions((prev) => ({ ...prev, [actionKey]: true }));
+  }, []);
+
+  const handleTaskStatusChange = useCallback((taskId: string, newStatus: Task['status']) => {
+    // 親の state 更新が子のレンダリング中に走らないように非同期で実行する
+    setTimeout(() => {
+      if (newStatus === 'completed') {
+        experimentData.endTaskTimer?.(taskId);
+        setCompletedTaskIds((prev) => ({ ...prev, [taskId]: true }));
+      } else {
+        experimentData.startTaskTimer?.(taskId);
+        setCompletedTaskIds((prev) => ({ ...prev, [taskId]: false }));
+      }
+    }, 0);
+  }, [experimentData.endTaskTimer, experimentData.startTaskTimer]);
+
+  // 実験完了条件を監視（ドロワーのチェックリストで満たす）
+  useEffect(() => {
+    const conditionKeys = Object.keys(experimentConditions);
+    const allCompleted = conditionKeys.length > 0 && conditionKeys.every((k) => experimentConditions[k]);
+    if (allCompleted && !postSurveyShown) {
+      setTimeout(() => {
+        // 停止: 事後アンケート表示時にクリック計測を止める
+        experimentData.stopClickTracking?.();
+        experimentData.endTimeTracking('profile');
+        experimentData.endTimeTracking('task');
+        setShowPostSurvey(true);
+        setPostSurveyShown(true);
+      }, 500);
+    }
+  }, [experimentConditions, experimentData, postSurveyShown]);
+
+  useEffect(() => {
+    // クライアントサイドでのみparticipantIdを生成
+    const id = experimentModeService.generateParticipantId();
+    setParticipantId(id);
+    
+    const mode = experimentModeService.getMode();
+    experimentData.setExperimentMode(mode);
+
+    // 実験群・統制群に関わらず事前アンケートを表示
+    setShowPreSurvey(true);
+  }, []); // 初期化は一度だけ実行
+
+  const handlePreSurveySubmit = useCallback(
+    async (answers: PreSurveyAnswers) => {
+      setShowPreSurvey(false);
+
+      // 事前アンケートの回答を記録
+      experimentData.recordPreSurveyAnswers(answers);
+
+      const mode = experimentModeService.getMode();
+      console.log("📝 事前アンケート回答:", answers);
+      console.log("🎯 実験モード:", mode);
+      // UI生成中の読み込みを表示
+      setIsUILoading(true);
+      setLoadingMessage('UIを生成しています...');
+
+      if (mode === 'experimental') {
+        // 実験群の場合：Gemini APIでUI構成を取得
+        console.log("🔬 実験群: Gemini APIを使用してUIを生成");
+        try {
+          const geminiResponse = await geminiService.generateUIConfig(answers);
+          console.log("✨ 適用されるUIConfig (実験群):", geminiResponse);
+
+          // geminiResponse may include presentation settings; if so, merge into uiConfig
+          const appliedUIConfig = {
+            layout: geminiResponse.layout as UIConfig['layout'],
+            text: geminiResponse.text as UIConfig['text'],
+            button: geminiResponse.button as UIConfig['button'],
+            input: geminiResponse.input as UIConfig['input'],
+            description: geminiResponse.description as UIConfig['description'],
+            ...( (geminiResponse as any).presentation ? { presentation: (geminiResponse as any).presentation } : {} ),
+          };
+
+          setUiConfig(appliedUIConfig as any);
+          experimentData.setUIConfig(appliedUIConfig as any);
+        } catch (error) {
+          console.error("Failed to get UI configuration:", error);
+          // フェールした場合でも標準UIを当てる
+          const standardConfig = {
+            layout: 'standard' as const,
+            text: 'standard' as const,
+            button: 'standard' as const,
+            input: 'standard' as const,
+            description: 'standard' as const,
+          };
+          setUiConfig(standardConfig);
+          experimentData.setUIConfig(standardConfig);
+        }
+      } else {
+        // 統制群の場合でも読み込み画面を表示して遅延させる（5秒）
+        console.log("🔧 統制群: 読み込みを偽装（待機）");
+        setLoadingMessage('読み込み中...');
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const standardConfig = {
+          layout: 'standard' as const,
+          text: 'standard' as const,
+          button: 'standard' as const,
+          input: 'standard' as const,
+          description: 'standard' as const,
+        };
+        setUiConfig(standardConfig);
+        experimentData.setUIConfig(standardConfig);
+      }
+
+      // 読み込み終了 -> ダッシュボード表示、クリック計測開始
+      setIsUILoading(false);
+      setAppState("dashboard");
+      experimentData.startClickTracking?.();
+    },
+    [experimentData.setUIConfig]
+  );
+
+  const handleProfileClick = useCallback(() => {
+    experimentData.endTimeTracking("dashboard");
+    setAppState("profile");
+  }, [experimentData.endTimeTracking]);
+
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleNavigate = useCallback((page: string) => {
+    // 共通のトラッキング終了処理
+    experimentData.endTimeTracking?.("dashboard");
+    // メニューを閉じて対象ページへ遷移
+    setIsMenuOpen(false);
+    setAppState(page as AppState);
+  }, [experimentData.endTimeTracking]);
+
+  const handleBackToDashboard = useCallback(() => {
+    setAppState("dashboard");
+    experimentData.startTimeTracking("dashboard");
+  }, [experimentData.startTimeTracking]);
+
+  const handleSaveUser = useCallback(
+    (userData: User) => {
+      setUser(userData);
+
+      // ユーザー名変更自体はタスク完了イベントで処理するため、ここでは即時終了しない
+    },
+    []
+  );
+
+  const handlePostSurveySubmit = useCallback(
+    (answers: PostSurveyAnswers) => {
+      setShowPostSurvey(false);
+
+      // 事後アンケートの回答を記録
+      experimentData.recordPostSurveyAnswers(answers);
+
+      // CSVファイルをダウンロード
+      experimentData.downloadCSV();
+
+      setAppState("completed");
+    },
+    [experimentData.recordPostSurveyAnswers, experimentData.downloadCSV]
+  );
+
+  const handleDashboardTimeStart = useCallback(() => {
+    experimentData.startTimeTracking("dashboard");
+  }, [experimentData.startTimeTracking]);
+
+  const handleProfileTimeStart = useCallback(() => {
+    experimentData.startTimeTracking("profile");
+    experimentData.startTimeTracking("task");
+  }, [experimentData.startTimeTracking]);
+
+  const handleProfileTimeEnd = useCallback(() => {
+    experimentData.endTimeTracking("profile");
+    experimentData.endTimeTracking("task");
+  }, [experimentData.endTimeTracking]);
+
+  const handleTaskComplete = useCallback(
+    (success: boolean, taskId?: string) => {
+      experimentData.recordTaskCompletion(success);
+      if (taskId) {
+        setCompletedTaskIds((prev) => ({ ...prev, [taskId]: success }));
+        // ユーザー名変更など、実験条件に紐づくIDであれば条件を満たす
+        if (Object.prototype.hasOwnProperty.call(experimentConditions, taskId)) {
+          setExperimentConditions((prev) => ({ ...prev, [taskId]: success }));
+        }
+      }
+    },
+    [experimentData.recordTaskCompletion, experimentConditions]
+  );
+
+  if (appState === "completed") {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">実験完了</h1>
+          <p className="text-gray-600 mb-6">
+            実験にご参加いただき、ありがとうございました。
+            データは自動的にダウンロードされました。
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            新しい実験を開始
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+    );
+  }
+
+  // participantIdが生成されるまでローディング表示
+  if (!participantId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg text-gray-600">読み込み中...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* 事前アンケートモーダル */}
+      {showPreSurvey && (
+        <PreSurveyModal
+          onSubmit={handlePreSurveySubmit}
+        />
+      )}
+
+      {/* 事後アンケートモーダル */}
+      {showPostSurvey && (
+        <PostSurveyModal
+          onSubmit={handlePostSurveySubmit}
+          tasks={experimentTasks ?? undefined}
+        />
+      )}
+
+      {/* UI生成中の読み込み画面 */}
+      {isUILoading && <LoadingScreen uiConfig={uiConfig} message={loadingMessage} />}
+
+      {/* メインコンテンツ */}
+      {appState === "dashboard" && (
+        <Dashboard
+          uiConfig={uiConfig}
+          user={user}
+          onProfileClick={handleProfileClick}
+          onNavigate={(p) => { setIsMenuOpen(true); }}
+          onTimeTrackingStart={handleDashboardTimeStart}
+          onTasksChange={handleTasksChange}
+          onTaskStatusChange={handleTaskStatusChange}
+          onExperimentAction={handleExperimentAction}
+        />
+      )}
+
+      <RightDrawerMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} onSelect={handleNavigate} />
+
+      {appState === "profile" && (
+        <ProfileSettings
+          uiConfig={uiConfig}
+          user={user}
+          onBackClick={handleBackToDashboard}
+          onSaveUser={handleSaveUser}
+          onTimeTrackingStart={handleProfileTimeStart}
+          onTimeTrackingEnd={handleProfileTimeEnd}
+          onTaskComplete={handleTaskComplete}
+        />
+      )}
+
+      {appState === "notifications" && (
+        <NotificationsPage onBack={() => setAppState('dashboard')} />
+      )}
+
+      {appState === "help" && (
+        <HelpPage onBack={() => setAppState('dashboard')} />
+      )}
+
+      {appState === "about" && (
+        <AboutPage onBack={() => setAppState('dashboard')} />
+      )}
+
+      {/* 左端にホバーで出現するドロワー（新しいRightDrawerMenuを左側で使用） */}
+      <RightDrawerMenu
+        side="left"
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        widthClass="w-64"
+        onPointerEnter={() => openDrawerWithDelay(0)}
+        onPointerLeave={() => closeDrawerWithDelay(200)}
+      >
+        <div>
+          <h4 className="font-bold mb-2">実験チェックリスト</h4>
+          <ul className="space-y-2 text-sm">
+            {Object.keys(conditionLabels).map((key) => (
+              <li key={key} className="flex items-center">
+                <input type="checkbox" checked={!!experimentConditions[key]} readOnly className="mr-2" />
+                <span>{conditionLabels[key]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </RightDrawerMenu>
+
+      <div
+        onPointerEnter={() => openDrawerWithDelay()}
+        onPointerLeave={() => closeDrawerWithDelay()}
+        className={`fixed left-0 top-0 h-full z-40 transition-all ${isDrawerOpen ? 'w-0' : 'w-6'}`}
+      >
+        {/* 省略: 触れるエリア */}
+      </div>
+
+      {/* デバッグ情報（開発時のみ表示） */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded-lg text-sm">
+          <div>Mode: {experimentModeService.getMode()}</div>
+          <div>Participant ID: {participantId}</div>
+          <div>Clicks: {experimentData.clickCount}</div>
+        </div>
+      )}
     </div>
   );
 }
