@@ -45,6 +45,8 @@ export interface ExperimentData {
   ui_button: StyleVariant;
   ui_input: StyleVariant;
   ui_description: StyleVariant;
+  presentation?: PresentationConfig; // UI表示方法の設定
+  reasons?: Record<string, string>; // AI判断理由
   pre_q1_confidence: number;
   pre_q2_preference: number;
   pre_q3_text_issue: number;
@@ -60,6 +62,8 @@ export interface ExperimentData {
   post_q2_satisfaction: number;
   post_q3_preference: number;
   post_q4_comment: string;
+  // タスクごとの時間計測など、動的なフィールドをサポート
+  [key: string]: any;
 }
 
 // 時間計測関連

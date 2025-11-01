@@ -11,8 +11,6 @@ interface ProfileSettingsProps {
   user: User;
   onBackClick: () => void;
   onSaveUser: (user: User) => void;
-  onTimeTrackingStart: () => void;
-  onTimeTrackingEnd: () => void;
   onTaskComplete: (success: boolean, taskId?: string) => void;
 }
 
@@ -21,8 +19,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   user,
   onBackClick,
   onSaveUser,
-  onTimeTrackingStart,
-  onTimeTrackingEnd,
   onTaskComplete,
 }) => {
   const [formData, setFormData] = useState<User>({
@@ -32,7 +28,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
-    onTimeTrackingStart();
     console.log("⚙️ ProfileSettings - 適用中のUIConfig:", uiConfig);
   }, []); // プロフィール設定のマウント時に一度だけ実行
 
@@ -74,7 +69,6 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   };
 
   const handleBackClick = () => {
-    onTimeTrackingEnd();
     onBackClick();
   };
 

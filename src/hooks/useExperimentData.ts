@@ -1,12 +1,10 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import {
   ExperimentData,
-  TimeMetrics,
   PreSurveyAnswers,
   PostSurveyAnswers,
   UIConfig,
   ExperimentMode,
-  Task,
 } from "@/types";
 
 export const useExperimentData = (participantId: string) => {
@@ -14,41 +12,55 @@ export const useExperimentData = (participantId: string) => {
   const [experimentData, setExperimentData] = useState<Partial<ExperimentData>>(() => ({
     participant_id: '',
     timestamp: '',
+    experiment_start_time: 0, // 実験開始時刻
+    group: undefined,
+    ui_layout: undefined,
+    ui_text: undefined,
+    ui_button: undefined,
+    ui_input: undefined,
+    ui_description: undefined,
+    presentation: undefined,
+    reasons: undefined,
+    pre_q1_confidence: 0,
+    pre_q2_preference: 0,
+    pre_q3_text_issue: 0,
+    pre_q4_tap_error: 0,
+    pre_q5_priority: 0,
+    pre_q6_icon_score: '',
     total_clicks: 0,
     task_success: 0,
+    post_q1_seq: -1,
+    post_q2_satisfaction: -1,
+    post_q3_preference: -1,
+    post_q4_comment: '',
   }));
 
   // participantId が設定されたときの初期化（一度だけ）
   useEffect(() => {
     if (participantId && !initializedRef.current) {
       initializedRef.current = true;
+      const startTime = Date.now();
       setExperimentData(prev => ({
         ...prev,
         participant_id: participantId,
         timestamp: new Date().toISOString(),
+        experiment_start_time: startTime,
       }));
     }
   }, [participantId]);
 
-  const [timeMetrics, setTimeMetrics] = useState<TimeMetrics>({
-    dashboard_start: 0,
-    dashboard_end: 0,
-    profile_start: 0,
-    profile_end: 0,
-    task_start: 0,
-    task_end: 0,
-  });
 
   const [clickCount, setClickCount] = useState(0);
   const clickCountRef = useRef(0);
   // クリック計測の有効フラグ
   const clickTrackingActiveRef = useRef(false);
-
-  // タスクごとの時間計測 (taskId -> { start, end })
-  const taskTimersRef = useRef<Record<string, { start: number; end?: number }>>({});
+  
+  // 実験タスクごとのデータ（チェックリスト: username_change, kanban_drag, etc.）
+  const experimentTaskDataRef = useRef<Record<string, { startTime: number; startClicks: number; endTime?: number; endClicks?: number }>>({});
 
   // 実験モードの設定
   const setExperimentMode = useCallback((mode: ExperimentMode) => {
+    console.log("🔬 実験モードを設定:", mode);
     setExperimentData((prev) => ({
       ...prev,
       group: mode,
@@ -57,6 +69,21 @@ export const useExperimentData = (participantId: string) => {
 
   // UIコンフィグの設定
   const setUIConfig = useCallback((config: UIConfig) => {
+    const presentation = (config as any).presentation;
+    const reasons = (config as any).reasons;
+    
+    console.log("💾 UIConfig保存開始:", {
+      基本設定: {
+        layout: config.layout,
+        text: config.text,
+        button: config.button,
+        input: config.input,
+        description: config.description,
+      },
+      presentation: presentation,
+      reasons: reasons,
+    });
+    
     setExperimentData((prev) => ({
       ...prev,
       ui_layout: config.layout,
@@ -65,15 +92,16 @@ export const useExperimentData = (participantId: string) => {
       ui_input: config.input,
       ui_description: config.description,
       // presentation と reasons も保存（存在する場合）
-      ...((config as any).presentation ? { presentation: (config as any).presentation } : {}),
-      ...((config as any).reasons ? { reasons: (config as any).reasons } : {}),
+      ...(presentation ? { presentation } : {}),
+      ...(reasons ? { reasons } : {}),
     }));
     
-    console.log("💾 UIConfig を保存しました:", config);
+    console.log("✅ UIConfig を保存しました");
   }, []);
 
   // 事前アンケートの回答を記録
   const recordPreSurveyAnswers = useCallback((answers: PreSurveyAnswers) => {
+    console.log("📋 事前アンケート回答を記録:", answers);
     setExperimentData((prev) => ({
       ...prev,
       pre_q1_confidence: answers.q1_confidence,
@@ -83,10 +111,12 @@ export const useExperimentData = (participantId: string) => {
       pre_q5_priority: answers.q5_priority,
       pre_q6_icon_score: answers.q6_icon_score,
     }));
+    console.log("✅ 事前アンケート回答を記録完了");
   }, []);
 
   // 事後アンケートの回答を記録
   const recordPostSurveyAnswers = useCallback((answers: PostSurveyAnswers) => {
+    console.log("📋 事後アンケート回答を記録:", answers);
     setExperimentData((prev) => ({
       ...prev,
       post_q1_seq: answers.q1_seq,
@@ -94,67 +124,10 @@ export const useExperimentData = (participantId: string) => {
       post_q3_preference: answers.q3_preference,
       post_q4_comment: answers.q4_comment,
     }));
+    console.log("✅ 事後アンケート回答を記録完了");
   }, []);
 
-  // 時間計測の開始
-  const startTimeTracking = useCallback(
-    (phase: "dashboard" | "profile" | "task") => {
-      const now = Date.now();
-      setTimeMetrics((prev) => ({
-        ...prev,
-        [`${phase}_start`]: now,
-      }));
-    },
-    []
-  );
 
-  // 時間計測の終了
-  const endTimeTracking = useCallback(
-    (phase: "dashboard" | "profile" | "task") => {
-      const now = Date.now();
-      setTimeMetrics((prev) => {
-        const newMetrics = {
-          ...prev,
-          [`${phase}_end`]: now,
-        };
-
-        // 時間データを実験データに記録
-        const startTime = prev[`${phase}_start` as keyof TimeMetrics];
-        const duration = startTime ? (now - startTime) / 1000 : 0;
-
-        setExperimentData((expData) => ({
-          ...expData,
-          [`time_${phase}`]: duration,
-          ...(phase === "task" && { time_task_total: duration }),
-        }));
-
-        return newMetrics;
-      });
-    },
-    []
-  );
-
-  // タスク単位の時間計測開始
-  const startTaskTimer = useCallback((taskId: string) => {
-    const now = Date.now();
-    taskTimersRef.current[taskId] = { start: now };
-  }, []);
-
-  // タスク単位の時間計測終了
-  const endTaskTimer = useCallback((taskId: string) => {
-    const now = Date.now();
-    const timers = taskTimersRef.current[taskId];
-    if (!timers || !timers.start) return;
-    const duration = (now - timers.start) / 1000;
-
-    // 保存
-    taskTimersRef.current[taskId].end = now;
-    setExperimentData((prev) => ({
-      ...prev,
-      // 動的なキー名でタスクごとの所要時間を保存
-      [`time_task_${taskId}`]: duration,
-    }));
-  }, []);
 
   // クリック数をカウント
   const incrementClickCount = useCallback(() => {
@@ -176,90 +149,221 @@ export const useExperimentData = (participantId: string) => {
 
   // タスクの完了を記録
   const recordTaskCompletion = useCallback((success: boolean) => {
+    console.log(`📊 タスク完了を記録: ${success ? '成功' : '失敗'}`);
     setExperimentData((prev) => ({
       ...prev,
       task_success: success ? 1 : 0,
     }));
   }, []);
 
+  // 実験タスク（チェックリスト）の開始を記録
+  const startExperimentTask = useCallback((taskKey: string) => {
+    const now = Date.now();
+    const currentClicks = clickCountRef.current;
+    experimentTaskDataRef.current[taskKey] = {
+      startTime: now,
+      startClicks: currentClicks,
+    };
+    console.log(`🎯 実験タスク開始: ${taskKey} (時刻: ${now}, クリック数: ${currentClicks})`);
+  }, []);
+
+  // 実験タスク（チェックリスト）の終了を記録
+  const endExperimentTask = useCallback((taskKey: string) => {
+    const now = Date.now();
+    const currentClicks = clickCountRef.current;
+    const taskData = experimentTaskDataRef.current[taskKey];
+    
+    if (!taskData) {
+      console.warn(`⚠️ 実験タスク ${taskKey} の開始データが見つかりません`);
+      return;
+    }
+
+    taskData.endTime = now;
+    taskData.endClicks = currentClicks;
+    
+    const duration = (now - taskData.startTime) / 1000; // 秒単位
+    const clicks = currentClicks - taskData.startClicks;
+    
+    console.log(`✅ 実験タスク完了: ${taskKey} (所要時間: ${duration}秒, クリック数: ${clicks})`);
+    
+    // 実験データに記録
+    setExperimentData((prev) => ({
+      ...prev,
+      [`exp_task_${taskKey}_time`]: duration,
+      [`exp_task_${taskKey}_clicks`]: clicks,
+    }));
+  }, []);
+
   // CSVデータの生成
-  // CSVデータの生成
-  // 引数にtasksを渡すと、タスクごとの所要時間カラムを追加して出力します
-  const generateCSVData = useCallback((tasks?: Task[]) => {
+  const generateCSVData = useCallback((postSurveyOverride?: PostSurveyAnswers) => {
     const data = experimentData as ExperimentData & Record<string, any>;
+    
+    // 事後アンケートが引数で渡された場合は、それを使用（最新の値を保証）
+    if (postSurveyOverride) {
+      data.post_q1_seq = postSurveyOverride.q1_seq;
+      data.post_q2_satisfaction = postSurveyOverride.q2_satisfaction;
+      data.post_q3_preference = postSurveyOverride.q3_preference;
+      data.post_q4_comment = postSurveyOverride.q4_comment;
+    }
+    
+    console.log("📊 CSV生成開始 - 実験データ:", data);
+    
+    // 基本情報
     const headers: string[] = [
       "participant_id",
       "timestamp",
       "group",
+    ];
+
+    // UI設定（基本5項目）
+    headers.push(
       "ui_layout",
       "ui_text",
       "ui_button",
       "ui_input",
-      "ui_description",
+      "ui_description"
+    );
+
+    // Presentation設定を追加
+    if ((data as any).presentation && typeof (data as any).presentation === "object") {
+      const pres = (data as any).presentation;
+      
+      // global設定
+      if (pres.global !== undefined) {
+        headers.push("presentation_global");
+      }
+      
+      // buttons設定（menu, addTask, defaultなど）
+      if (pres.buttons && typeof pres.buttons === "object") {
+        const buttonKeys = Object.keys(pres.buttons).sort(); // ソートして順序を固定
+        buttonKeys.forEach((k) => {
+          headers.push(`presentation_button_${k}`);
+        });
+      }
+      
+      // taskAction設定
+      if (pres.taskAction && typeof pres.taskAction === "object") {
+        if (pres.taskAction.default !== undefined) {
+          headers.push("presentation_taskAction_default");
+        }
+        // modesは配列なので、カンマ区切りの文字列として出力
+        if (pres.taskAction.modes && Array.isArray(pres.taskAction.modes)) {
+          headers.push("presentation_taskAction_modes");
+        }
+      }
+    }
+
+    // 判断理由（reasons）を追加
+    if ((data as any).reasons && typeof (data as any).reasons === "object") {
+      const reasonKeys = Object.keys((data as any).reasons).sort(); // ソートして順序を固定
+      reasonKeys.forEach((k) => {
+        headers.push(`reason_${k}`);
+      });
+    }
+
+    // 事前アンケート
+    headers.push(
       "pre_q1_confidence",
       "pre_q2_preference",
       "pre_q3_text_issue",
       "pre_q4_tap_error",
       "pre_q5_priority",
-      "pre_q6_icon_score",
-      "time_dashboard",
-      "time_profile",
-      "time_task_total",
+      "pre_q6_icon_score"
+    );
+
+    // 実験タスク（チェックリスト）の時間とクリック数
+    const experimentTaskKeys = [
+      "username_change",
+      "kanban_drag", 
+      "kanban_edit",
+      "kanban_delete",
+      "kanban_add"
     ];
-
-    // タスクごとの時間カラムを挿入（存在するタスクが渡された場合）
-    if (tasks && tasks.length > 0) {
-      tasks.forEach((t) => {
-        // Exclude the task titled 'ユーザ名変更' from CSV timing columns
-        if (t.title === "ユーザ名変更") return;
-        headers.push(`time_task_${t.id}`);
-      });
-    }
-
-    // If experiment data contains a presentation object, add presentation fields
-    // presentation: { global, buttons: { key: mode } }
-    if ((data as any).presentation && typeof (data as any).presentation === "object") {
-      const pres = (data as any).presentation;
-      if (pres.global) headers.push("presentation_global");
-      if (pres.buttons && typeof pres.buttons === "object") {
-        Object.keys(pres.buttons).forEach((k) => headers.push(`presentation_button_${k}`));
-      }
-    }
-
-    // If there are reasons recorded, add them as columns
-    if ((data as any).reasons && typeof (data as any).reasons === "object") {
-      Object.keys((data as any).reasons).forEach((k) => headers.push(`reason_${k}`));
-    }
-
-    headers.push("total_clicks", "task_success", "post_q1_seq", "post_q2_satisfaction", "post_q3_preference", "post_q4_comment");
-
-    const values = headers.map((header) => {
-      // derived presentation fields
-      if (header === "presentation_global") {
-        return ((data as any).presentation && (data as any).presentation.global) ?? "";
-      }
-      if (header.startsWith("presentation_button_")) {
-        const key = header.replace("presentation_button_", "");
-        return ((data as any).presentation && (data as any).presentation.buttons && (data as any).presentation.buttons[key]) ?? "";
-      }
-      if (header.startsWith("reason_")) {
-        const key = header.replace("reason_", "");
-        return ((data as any).reasons && (data as any).reasons[key]) ?? "";
-      }
-
-      const value = data[header as keyof (ExperimentData & Record<string, any>)];
-      if (typeof value === "string" && value.includes(",")) {
-        return `"${value}"`;
-      }
-      return value !== undefined && value !== null ? value : "";
+    
+    experimentTaskKeys.forEach((taskKey) => {
+      headers.push(`exp_task_${taskKey}_time`);
+      headers.push(`exp_task_${taskKey}_clicks`);
     });
+
+    // 行動データ
+    headers.push(
+      "total_times",  // 実験全体の所要時間（秒）
+      "total_clicks",
+      "task_success"
+    );
+
+    // 事後アンケート
+    headers.push(
+      "post_q1_seq",
+      "post_q2_satisfaction",
+      "post_q3_preference",
+      "post_q4_comment"
+    );
+
+    console.log("📋 CSVヘッダー:", headers);
+
+    // 値の抽出
+    const values = headers.map((header) => {
+      let value: any;
+
+      // total_timesの特殊処理（実験全体の所要時間を計算）
+      if (header === "total_times") {
+        const startTime = data.experiment_start_time;
+        if (startTime && typeof startTime === 'number') {
+          const endTime = Date.now();
+          value = ((endTime - startTime) / 1000).toFixed(3); // 秒単位、小数点3桁
+        } else {
+          value = "";
+        }
+      } else if (header === "presentation_global") {
+        value = ((data as any).presentation && (data as any).presentation.global) ?? "";
+      } else if (header.startsWith("presentation_button_")) {
+        const key = header.replace("presentation_button_", "");
+        value = ((data as any).presentation && 
+                 (data as any).presentation.buttons && 
+                 (data as any).presentation.buttons[key]) ?? "";
+      } else if (header === "presentation_taskAction_default") {
+        value = ((data as any).presentation && 
+                 (data as any).presentation.taskAction && 
+                 (data as any).presentation.taskAction.default) ?? "";
+      } else if (header === "presentation_taskAction_modes") {
+        const modes = ((data as any).presentation && 
+                      (data as any).presentation.taskAction && 
+                      (data as any).presentation.taskAction.modes);
+        value = modes && Array.isArray(modes) ? modes.join(";") : "";
+      } else if (header.startsWith("reason_")) {
+        const key = header.replace("reason_", "");
+        value = ((data as any).reasons && (data as any).reasons[key]) ?? "";
+      } else {
+        // 通常のフィールド
+        value = data[header as keyof (ExperimentData & Record<string, any>)];
+      }
+
+      // CSV形式に変換（カンマやダブルクォートのエスケープ）
+      if (value === undefined || value === null) {
+        return "";
+      }
+      
+      const stringValue = String(value);
+      
+      // カンマ、改行、ダブルクォートが含まれる場合はダブルクォートで囲む
+      if (stringValue.includes(",") || stringValue.includes("\n") || stringValue.includes('"')) {
+        // ダブルクォートは2つ重ねてエスケープ
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      
+      return stringValue;
+    });
+
+    console.log("📊 CSV値:", values);
+    console.log("✅ CSV生成完了");
 
     return [headers.join(","), values.join(",")].join("\n");
   }, [experimentData]);
 
   // CSVファイルのダウンロード
-  const downloadCSV = useCallback((tasks?: Task[]) => {
-    const csvData = generateCSVData(tasks);
+  const downloadCSV = useCallback((postSurveyOverride?: PostSurveyAnswers) => {
+    const csvData = generateCSVData(postSurveyOverride);
     const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -294,38 +398,32 @@ export const useExperimentData = (participantId: string) => {
 
   return useMemo(() => ({
     experimentData,
-    timeMetrics,
     clickCount,
     setExperimentMode,
     setUIConfig,
     recordPreSurveyAnswers,
     recordPostSurveyAnswers,
-    startTimeTracking,
-    endTimeTracking,
     incrementClickCount,
     recordTaskCompletion,
-    startTaskTimer,
-    endTaskTimer,
     startClickTracking,
     stopClickTracking,
+    startExperimentTask,
+    endExperimentTask,
     downloadCSV,
     generateCSVData,
   }), [
     experimentData,
-    timeMetrics,
     clickCount,
     setExperimentMode,
     setUIConfig,
     recordPreSurveyAnswers,
     recordPostSurveyAnswers,
-    startTimeTracking,
-    endTimeTracking,
     incrementClickCount,
     recordTaskCompletion,
-    startTaskTimer,
-    endTaskTimer,
     startClickTracking,
     stopClickTracking,
+    startExperimentTask,
+    endExperimentTask,
     downloadCSV,
     generateCSVData,
   ]);

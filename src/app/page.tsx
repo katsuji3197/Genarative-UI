@@ -48,7 +48,8 @@ export default function Home() {
   const [experimentTasks, setExperimentTasks] = useState<Task[] | null>(null);
 
   // 完了済みタスクIDの集合（カンバン個別タスクやその他識別子）
-  const [completedTaskIds, setCompletedTaskIds] = useState<Record<string, boolean>>({});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_completedTaskIds, setCompletedTaskIds] = useState<Record<string, boolean>>({});
   // 実験完了条件（チェックリスト）
   const [experimentConditions, setExperimentConditions] = useState<Record<string, boolean>>({
     username_change: false,
@@ -126,21 +127,31 @@ export default function Home() {
 
   // Dashboard から実験アクション通知を受け取る
   const handleExperimentAction = useCallback((actionKey: string) => {
-    setExperimentConditions((prev) => ({ ...prev, [actionKey]: true }));
-  }, []);
+    console.log(`🎯 実験アクション: ${actionKey}`);
+    
+    // 実験タスクを完了としてマーク
+    setExperimentConditions((prev) => {
+      const wasCompleted = prev[actionKey];
+      
+      // まだ完了していない場合のみ終了を記録
+      if (!wasCompleted) {
+        experimentData.endExperimentTask?.(actionKey);
+      }
+      
+      return { ...prev, [actionKey]: true };
+    });
+  }, [experimentData]);
 
   const handleTaskStatusChange = useCallback((taskId: string, newStatus: Task['status']) => {
     // 親の state 更新が子のレンダリング中に走らないように非同期で実行する
     setTimeout(() => {
       if (newStatus === 'completed') {
-        experimentData.endTaskTimer?.(taskId);
         setCompletedTaskIds((prev) => ({ ...prev, [taskId]: true }));
       } else {
-        experimentData.startTaskTimer?.(taskId);
         setCompletedTaskIds((prev) => ({ ...prev, [taskId]: false }));
       }
     }, 0);
-  }, [experimentData.endTaskTimer, experimentData.startTaskTimer]);
+  }, []);
 
   // 実験完了条件を監視（ドロワーのチェックリストで満たす）
   useEffect(() => {
@@ -150,8 +161,6 @@ export default function Home() {
       setTimeout(() => {
         // 停止: 事後アンケート表示時にクリック計測を止める
         experimentData.stopClickTracking?.();
-        experimentData.endTimeTracking('profile');
-        experimentData.endTimeTracking('task');
         setShowPostSurvey(true);
         setPostSurveyShown(true);
       }, 500);
@@ -192,17 +201,18 @@ export default function Home() {
           console.log("✨ 適用されるUIConfig (実験群):", geminiResponse);
 
           // geminiResponse may include presentation settings; if so, merge into uiConfig
-          const appliedUIConfig = {
+          const appliedUIConfig: UIConfig & { presentation?: unknown; reasons?: unknown } = {
             layout: geminiResponse.layout as UIConfig['layout'],
             text: geminiResponse.text as UIConfig['text'],
             button: geminiResponse.button as UIConfig['button'],
             input: geminiResponse.input as UIConfig['input'],
             description: geminiResponse.description as UIConfig['description'],
-            ...( (geminiResponse as any).presentation ? { presentation: (geminiResponse as any).presentation } : {} ),
+            ...(geminiResponse.presentation ? { presentation: geminiResponse.presentation } : {}),
+            ...(geminiResponse.reasons ? { reasons: geminiResponse.reasons } : {}),
           };
 
-          setUiConfig(appliedUIConfig as any);
-          experimentData.setUIConfig(appliedUIConfig as any);
+          setUiConfig(appliedUIConfig);
+          experimentData.setUIConfig(appliedUIConfig);
         } catch (error) {
           console.error("Failed to get UI configuration:", error);
           // フェールした場合でも標準UIを当てる
@@ -236,29 +246,33 @@ export default function Home() {
       setIsUILoading(false);
       setAppState("dashboard");
       experimentData.startClickTracking?.();
+      
+      // すべての実験タスクの計測を開始
+      console.log("🎯 実験タスクの計測を開始");
+      experimentData.startExperimentTask?.('username_change');
+      experimentData.startExperimentTask?.('kanban_drag');
+      experimentData.startExperimentTask?.('kanban_edit');
+      experimentData.startExperimentTask?.('kanban_delete');
+      experimentData.startExperimentTask?.('kanban_add');
     },
     [experimentData.setUIConfig]
   );
 
   const handleProfileClick = useCallback(() => {
-    experimentData.endTimeTracking("dashboard");
     setAppState("profile");
-  }, [experimentData.endTimeTracking]);
+  }, []);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleNavigate = useCallback((page: string) => {
-    // 共通のトラッキング終了処理
-    experimentData.endTimeTracking?.("dashboard");
     // メニューを閉じて対象ページへ遷移
     setIsMenuOpen(false);
     setAppState(page as AppState);
-  }, [experimentData.endTimeTracking]);
+  }, []);
 
   const handleBackToDashboard = useCallback(() => {
     setAppState("dashboard");
-    experimentData.startTimeTracking("dashboard");
-  }, [experimentData.startTimeTracking]);
+  }, []);
 
   const handleSaveUser = useCallback(
     (userData: User) => {
@@ -273,30 +287,21 @@ export default function Home() {
     (answers: PostSurveyAnswers) => {
       setShowPostSurvey(false);
 
-      // 事後アンケートの回答を記録
+      // 事後アンケートの回答を記録（状態管理用）
       experimentData.recordPostSurveyAnswers(answers);
 
-      // CSVファイルをダウンロード
-      experimentData.downloadCSV();
+      console.log("📥 CSV出力前の実験データ:", experimentData.experimentData);
+      console.log("📝 事後アンケート回答（送信前確認）:", answers);
 
+      // CSVファイルをダウンロード（事後アンケートの回答を直接渡して、最新の値を保証）
+      console.log("📥 CSV生成開始");
+      experimentData.downloadCSV(answers);
+      
       setAppState("completed");
     },
-    [experimentData.recordPostSurveyAnswers, experimentData.downloadCSV]
+    [experimentData]
   );
 
-  const handleDashboardTimeStart = useCallback(() => {
-    experimentData.startTimeTracking("dashboard");
-  }, [experimentData.startTimeTracking]);
-
-  const handleProfileTimeStart = useCallback(() => {
-    experimentData.startTimeTracking("profile");
-    experimentData.startTimeTracking("task");
-  }, [experimentData.startTimeTracking]);
-
-  const handleProfileTimeEnd = useCallback(() => {
-    experimentData.endTimeTracking("profile");
-    experimentData.endTimeTracking("task");
-  }, [experimentData.endTimeTracking]);
 
   const handleTaskComplete = useCallback(
     (success: boolean, taskId?: string) => {
@@ -305,11 +310,18 @@ export default function Home() {
         setCompletedTaskIds((prev) => ({ ...prev, [taskId]: success }));
         // ユーザー名変更など、実験条件に紐づくIDであれば条件を満たす
         if (Object.prototype.hasOwnProperty.call(experimentConditions, taskId)) {
+          console.log(`🎯 実験タスク完了通知: ${taskId}`);
+          
+          // 実験タスクの終了時刻とクリック数を記録
+          if (success && !experimentConditions[taskId]) {
+            experimentData.endExperimentTask?.(taskId);
+          }
+          
           setExperimentConditions((prev) => ({ ...prev, [taskId]: success }));
         }
       }
     },
-    [experimentData.recordTaskCompletion, experimentConditions]
+    [experimentData, experimentConditions]
   );
 
   if (appState === "completed") {
@@ -369,8 +381,7 @@ export default function Home() {
           uiConfig={uiConfig}
           user={user}
           onProfileClick={handleProfileClick}
-          onNavigate={(p) => { setIsMenuOpen(true); }}
-          onTimeTrackingStart={handleDashboardTimeStart}
+          onNavigate={() => { setIsMenuOpen(true); }}
           onTasksChange={handleTasksChange}
           onTaskStatusChange={handleTaskStatusChange}
           onExperimentAction={handleExperimentAction}
@@ -385,8 +396,6 @@ export default function Home() {
           user={user}
           onBackClick={handleBackToDashboard}
           onSaveUser={handleSaveUser}
-          onTimeTrackingStart={handleProfileTimeStart}
-          onTimeTrackingEnd={handleProfileTimeEnd}
           onTaskComplete={handleTaskComplete}
         />
       )}

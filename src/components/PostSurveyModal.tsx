@@ -44,8 +44,10 @@ export const PostSurveyModal: React.FC<PostSurveyModalProps> = ({
       alert("すべての質問にお答えください。");
       return;
     }
+    
+    console.log("📝 事後アンケート回答:", answers);
     onSubmit(answers);
-    // CSV ダウンロードは親が行う。ただし tasks を参照して必要なら処理可能。
+    // CSV ダウンロードは親が行う。
   };
 
   return (

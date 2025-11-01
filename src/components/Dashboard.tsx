@@ -14,7 +14,6 @@ interface DashboardProps {
   user: { name: string; email: string };
   onProfileClick: () => void;
   onNavigate?: (page: string) => void;
-  onTimeTrackingStart: () => void;
   onTasksChange?: (tasks: Task[]) => void;
   onTaskStatusChange?: (taskId: string, newStatus: Task["status"]) => void;
   // 実験タスク（チェックリスト）を満たしたときに親へ通知する
@@ -29,7 +28,6 @@ const DashboardComponent: React.FC<DashboardProps> = ({
   user,
   onProfileClick,
   onNavigate,
-  onTimeTrackingStart,
   onTasksChange,
   onTaskStatusChange,
   onExperimentAction,
@@ -67,11 +65,6 @@ const DashboardComponent: React.FC<DashboardProps> = ({
   const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
   const [presentationOverride, setPresentationOverride] = useState<Record<string, string>>({});
   const requestInFlightRef = useRef<Record<string, boolean>>({});
-
-  useEffect(() => {
-    onTimeTrackingStart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // On mount, request presentation recommendation for key buttons
   useEffect(() => {
