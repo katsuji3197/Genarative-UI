@@ -140,7 +140,8 @@ export interface GeminiResponse {
   description: StyleVariant;
 }
 
-// Gemini の返す拡張レスポンス（presentation を含む可能性）
+// Gemini の返す拡張レスポンス（presentation と reasons を含む可能性）
 export interface GeminiResponseExtended extends GeminiResponse {
   presentation?: PresentationConfig;
+  reasons?: Record<string, string>;
 }

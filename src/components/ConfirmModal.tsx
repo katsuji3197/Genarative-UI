@@ -24,7 +24,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({ open, title = '確�
 
   return (
     <div className="fixed inset-0 bg-neutral-100/50 backdrop-blur-md flex items-center justify-center z-50">
-      <div className={`bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md p-6 border-gray-0`}>
+      <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border-gray-0`}>
         <div className="flex items-start justify-between mb-3">
           <h3 className={`font-semibold ${getPersonalizedStyle(uiConfig, 'text')}`}>{title}</h3>
           <button aria-label="閉じる" onClick={onCancel} className="text-gray-500 hover:text-gray-800">

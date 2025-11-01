@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { PersonFillIcon } from "@primer/octicons-react";
 import { UIConfig, UIConfigWithPresentation, Task } from "@/types";
 import personalizationConfig from "@/config/personalization.json";
@@ -66,6 +66,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
   const [addingToColumn, setAddingToColumn] = useState<Task["status"] | null>(null);
   const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
   const [presentationOverride, setPresentationOverride] = useState<Record<string, string>>({});
+  const requestInFlightRef = useRef<Record<string, boolean>>({});
 
   useEffect(() => {
     onTimeTrackingStart();
@@ -74,8 +75,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 
   // On mount, request presentation recommendation for key buttons
   useEffect(() => {
-    // request for 'addTask' and default/global
-    requestPresentationForButton('addTask');
+    // request only once for global presentation; per-button values (if present) are applied from response
     requestPresentationForButton();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -155,26 +155,25 @@ const DashboardComponent: React.FC<DashboardProps> = ({
 
   // Ask Gemini for a recommendation for a specific button (async, sets presentationOverride)
   const requestPresentationForButton = async (buttonKey?: string) => {
-    try {
-      const prompt = geminiService.buildPresentationPrompt({
-        q1_confidence: (uiConfig as any).confidence ?? 3,
-        q2_preference: (uiConfig as any).preference ?? 3,
-        q3_text_issue: (uiConfig as any).text ?? 3,
-        q4_tap_error: (uiConfig as any).tapError ?? 3,
-        q5_priority: (uiConfig as any).priority ?? 3,
-        q6_icon_score: (uiConfig as any).presentation?.buttons?.iconScore ?? "3/5",
-      }, buttonKey);
+    const key = buttonKey ?? "default";
+    // avoid duplicate concurrent requests
+    if (presentationOverride[key]) return;
+    if (requestInFlightRef.current[key]) {
+      // eslint-disable-next-line no-console
+      console.debug(`Presentation request for ${key} already in flight, skipping`);
+      return;
+    }
 
-      // If geminiService has no apiKey it won't call API here; to keep behavior local, try-safe parse
+    requestInFlightRef.current[key] = true;
+    try {
       const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
       if (!apiKey) {
         // simple heuristic fallback
         const fallback = (uiConfig.presentation && (uiConfig.presentation as any).global) || getPresentation(buttonKey);
-        setPresentationOverride((prev) => ({ ...prev, [buttonKey ?? 'default']: fallback }));
+        setPresentationOverride((prev) => ({ ...prev, [key]: fallback }));
         return;
       }
 
-      // call Gemini via the existing generateUIConfig path by sending answers and extracting presentation
       const answers = {
         q1_confidence: (uiConfig as any).confidence ?? 3,
         q2_preference: (uiConfig as any).preference ?? 3,
@@ -187,14 +186,15 @@ const DashboardComponent: React.FC<DashboardProps> = ({
       const resp = await geminiService.generateUIConfig(answers);
       const pres = resp.presentation;
       if (pres) {
-        const val = buttonKey && pres.buttons && pres.buttons[buttonKey] ? pres.buttons[buttonKey] : pres.global || getPresentation(buttonKey);
-        setPresentationOverride((prev) => ({ ...prev, [buttonKey ?? 'default']: val }));
-        // log recommendation to console as requested
+        const val = key && pres.buttons && pres.buttons[key] ? pres.buttons[key] : pres.global || getPresentation(buttonKey);
+        setPresentationOverride((prev) => ({ ...prev, [key]: val }));
         // eslint-disable-next-line no-console
-        console.info(`Gemini recommended presentation for ${buttonKey ?? 'default'}:`, val);
+        console.info(`Gemini recommended presentation for ${key}:`, val);
       }
     } catch (e) {
       console.warn("Presentation request failed", e);
+    } finally {
+      requestInFlightRef.current[key] = false;
     }
   };
 

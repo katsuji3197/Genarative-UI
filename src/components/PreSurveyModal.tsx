@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import AppButton from "./AppButton";
 import { PreSurveyAnswers } from "@/types";
-import { GeminiService } from "@/lib/gemini";
+import { geminiService } from "@/lib/gemini";
 import {
   HiOutlineBars3,
   HiOutlineShare,
@@ -35,7 +35,6 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
   ]);
 
   const [isEvaluating, setIsEvaluating] = useState(false);
-  const geminiService = new GeminiService();
 
   const handleScaleChange = (
     question: keyof PreSurveyAnswers,
@@ -75,18 +74,25 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
       onSubmit(updatedAnswers);
     } catch (error) {
       console.error("Error evaluating icons:", error);
-      // エラーの場合は従来の採点方法にフォールバック
-      const correctAnswers = [
-        "メニュー",
-        "共有",
-        "コピー",
-        "ダウンロード",
-        "ハート",
+      // エラーの場合は簡易的なローカル採点にフォールバック
+      const correctPatterns = [
+        ["メニュー", "ハンバーガー", "三本線", "ナビ"],
+        ["共有", "シェア", "送信"],
+        ["コピー", "複製", "複写"],
+        ["ダウンロード", "保存", "DL"],
+        ["ハート", "いいね", "お気に入り", "好き", "ライク"],
       ];
-      const correctCount = iconTestAnswers.filter(
-        (answer, i) => answer === correctAnswers[i]
-      ).length;
+      let correctCount = 0;
+      iconTestAnswers.forEach((answer, i) => {
+        const normalized = answer.toLowerCase().trim();
+        if (correctPatterns[i].some((pattern) =>
+          normalized.includes(pattern.toLowerCase())
+        )) {
+          correctCount++;
+        }
+      });
       const fallbackScore = `${correctCount}/5`;
+      console.log("📝 フォールバック採点:", fallbackScore);
       const updatedAnswers = { ...answers, q6_icon_score: fallbackScore };
       onSubmit(updatedAnswers);
     } finally {

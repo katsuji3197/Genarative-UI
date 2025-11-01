@@ -35,7 +35,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle
 
   return (
     <div className="fixed inset-0 bg-neutral-100/50 backdrop-blur-md flex items-center justify-center z-50">
-      <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl p-6 transform transition-transform duration-200 scale-100 ${getPersonalizedStyle(uiConfig, 'layout')}`}>
+      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 transform transition-transform duration-200 scale-100 ${getPersonalizedStyle(uiConfig, 'layout')}`}>
         <div className="flex items-start justify-between mb-4">
           <h3 className={`font-semibold ${getPersonalizedStyle(uiConfig, 'text')}`}>{heading}</h3>
           <button aria-label="閉じる" onClick={onClose} className="text-gray-500 hover:text-gray-800">
@@ -53,7 +53,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className={`w-full p-3 rounded-lg shadow-sm ring-1 ring-gray-100 focus:ring-2 focus:ring-blue-200 ${getPersonalizedStyle(uiConfig, 'input')}`}
+            className={`w-full p-3 rounded-lg shadow-sm ring-1 h-24 ring-gray-100 focus:ring-2 focus:ring-blue-200 ${getPersonalizedStyle(uiConfig, 'input')}`}
             rows={5}
             placeholder="詳細（任意）"
           />

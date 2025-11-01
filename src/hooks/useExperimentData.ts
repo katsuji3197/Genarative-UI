@@ -64,7 +64,12 @@ export const useExperimentData = (participantId: string) => {
       ui_button: config.button,
       ui_input: config.input,
       ui_description: config.description,
+      // presentation と reasons も保存（存在する場合）
+      ...((config as any).presentation ? { presentation: (config as any).presentation } : {}),
+      ...((config as any).reasons ? { reasons: (config as any).reasons } : {}),
     }));
+    
+    console.log("💾 UIConfig を保存しました:", config);
   }, []);
 
   // 事前アンケートの回答を記録
@@ -205,6 +210,8 @@ export const useExperimentData = (participantId: string) => {
     // タスクごとの時間カラムを挿入（存在するタスクが渡された場合）
     if (tasks && tasks.length > 0) {
       tasks.forEach((t) => {
+        // Exclude the task titled 'ユーザ名変更' from CSV timing columns
+        if (t.title === "ユーザ名変更") return;
         headers.push(`time_task_${t.id}`);
       });
     }
