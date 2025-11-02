@@ -14,13 +14,14 @@ interface EditTaskModalProps {
   onClose: () => void;
   onSave: (title: string, description?: string) => void;
   heading?: string;
+  showDescription?: boolean;
 }
 
 const getPersonalizedStyle = (uiConfig: UIConfigWithPresentation, component: keyof UIConfig) => {
   return (personalizationConfig as any)[component][(uiConfig as any)[component]];
 };
 
-export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle, initialDescription = "", uiConfig, onClose, onSave, heading = 'タスクを編集' }) => {
+export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle, initialDescription = "", uiConfig, onClose, onSave, heading = 'タスクを編集', showDescription = true }) => {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
 
@@ -50,17 +51,19 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle
             className={`w-full ${getPersonalizedStyle(uiConfig, 'input')} rounded-lg shadow-sm ring-1 ring-gray-100 focus:ring-2 focus:ring-blue-200`}
             placeholder="タイトル"
           />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className={`w-full p-3 rounded-lg shadow-sm ring-1 h-24 ring-gray-100 focus:ring-2 focus:ring-blue-200 ${getPersonalizedStyle(uiConfig, 'input')}`}
-            rows={5}
-            placeholder="詳細（任意）"
-          />
+          {showDescription && (
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className={`w-full p-3 rounded-lg shadow-sm ring-1 h-24 ring-gray-100 focus:ring-2 focus:ring-blue-200 ${getPersonalizedStyle(uiConfig, 'input')}`}
+              rows={5}
+              placeholder="詳細（任意）"
+            />
+          )}
         </div>
 
         <div className="mt-6 flex justify-end items-center space-x-3">
-          <AppButton variant="secondary" uiConfig={uiConfig} presentation="text">
+          <AppButton variant="secondary" uiConfig={uiConfig} presentation="text" onClick={onClose}>
             キャンセル
           </AppButton>
           <AppButton variant="primary" uiConfig={uiConfig} presentation="text" onClick={() => onSave(title.trim() || initialTitle, description)}>

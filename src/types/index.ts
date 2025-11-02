@@ -129,7 +129,7 @@ export type TaskActionMode = "inline" | "menu" | "icon-only";
 export interface PresentationConfig {
   buttons: Record<string, PresentationMode>;
   global?: PresentationMode;
-  taskAction: {
+  taskAction?: {
     default: TaskActionMode;
     modes: TaskActionMode[];
   };

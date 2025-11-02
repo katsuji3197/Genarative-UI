@@ -62,7 +62,6 @@ const DashboardComponent: React.FC<DashboardProps> = ({
   const [editingTask, setEditingTask] = useState<{ id: string; title: string; description?: string } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; taskId?: string }>({ open: false });
   const [addingToColumn, setAddingToColumn] = useState<Task["status"] | null>(null);
-  const [openMenuTaskId, setOpenMenuTaskId] = useState<string | null>(null);
   const [presentationOverride, setPresentationOverride] = useState<Record<string, string>>({});
   const requestInFlightRef = useRef<Record<string, boolean>>({});
 
@@ -124,13 +123,6 @@ const DashboardComponent: React.FC<DashboardProps> = ({
     const base = (personalizationConfig as any)["presentation"] || {};
     if (buttonKey && base.buttons && base.buttons[buttonKey]) return base.buttons[buttonKey];
     return base.global || base.default || "icon";
-  };
-
-  const getTaskActionMode = () => {
-    const uiPres = (uiConfig as any).presentation;
-    if (uiPres && uiPres.taskAction && uiPres.taskAction.default) return uiPres.taskAction.default;
-    const base = (personalizationConfig as any)["presentation"] || {};
-    return base.taskAction?.default || "inline";
   };
 
   // Ask Gemini for a recommendation for a specific button (async, sets presentationOverride)
@@ -295,7 +287,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                     <span className={`ml-2 text-sm text-gray-500 ${getPersonalizedStyle("text")}`}>({getTasksByStatus(status).length})</span>
                   </h3>
                   {/* 右上の + ボタン */}
-                  <div className="flex items-center space-x-2 w-fit">
+                  <div className="flex items-center space-x-1">
                     <AppButton variant="ghost" uiConfig={uiConfig} presentation={getPresentation('addTask')} className={(personalizationConfig as any).buttonSize?.plusButton?.[(uiConfig as any).button] || ''} onClick={() => setAddingToColumn(status)}>
                       {(getPresentation('addTask') === 'icon' || getPresentation('addTask') === 'icon_text') && (
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="shrink-0">
@@ -310,59 +302,19 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                 </div>
                 <div className={`p-4 ${getPersonalizedStyle("layout")}`}>
                   {getTasksByStatus(status).map((task) => (
-                    <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} className="bg-white rounded-lg p-4 shadow hover:shadow-lg mb-3">
-                      <div className="flex justify-between items-start">
+                    <div key={task.id} draggable onDragStart={(e) => handleDragStart(e, task.id)} className="bg-white border-px border-neutral-200 rounded-lg p-4 shadow hover:shadow-lg mb-3">
+                      <div className="flex flex-col gap-4 justify-between items-start">
                         <div>
                           <h4 className={`font-medium text-gray-900 mb-2 ${getPersonalizedStyle("text")}`}>{task.title}</h4>
-                          <p className={`text-gray-600 ${getPersonalizedStyle("description")}`}>{task.description}</p>
+                          <p className={`text-gray-600 ${getPersonalizedStyle("text")}`}>{task.description}</p>
                         </div>
-                        <div className="flex space-x-2 relative">
-                          <span className={`${getStatusColor(task.status)} px-2 py-1 rounded-full text-xs font-medium`}>{getStatusTitle(task.status)}</span>
-                          {/* Task actions: inline | menu | icon-only */}
+                        <div className="flex space-x-2 relative w-full justify-between items-center">
+                          <span className={`${getStatusColor(task.status)} px-2 py-1 flex items-center justify-center rounded-full text-xs font-medium`}>{getStatusTitle(task.status)}</span>
+                          {/* Task actions: always inline */}
                           {(() => {
                             const globalPres = getPresentation();
-                            const actionMode = getTaskActionMode();
-                            const showText = globalPres === "text" || globalPres === "icon_text";
-
-                            if (actionMode === "icon-only") {
-                              return (
-                                <>
-                                  <AppButton variant="ghost" uiConfig={uiConfig} presentation={"icon"} onClick={() => setEditingTask({ id: task.id, title: task.title, description: task.description })}>
-                                    <PencilIconSVG />
-                                    <span className="sr-only">編集</span>
-                                  </AppButton>
-                                  <AppButton variant="danger" uiConfig={uiConfig} presentation={"icon"} onClick={() => setConfirmDelete({ open: true, taskId: task.id })}>
-                                    <TrashIconSVG />
-                                    <span className="sr-only">削除</span>
-                                  </AppButton>
-                                </>
-                              );
-                            }
-
-                            if (actionMode === "menu") {
-                              const open = openMenuTaskId === task.id;
-                              return (
-                                <div className="relative">
-                                  <button aria-haspopup="menu" aria-expanded={open} onClick={() => setOpenMenuTaskId(open ? null : task.id)} className="px-2 py-1 rounded hover:bg-gray-100">
-                                    ⋯
-                                  </button>
-                                  {open ? (
-                                    <div className="absolute right-0 mt-2 w-40 bg-white border rounded shadow-md z-50">
-                                      <button className="w-full text-left px-3 py-2 hover:bg-gray-50" onClick={() => { setEditingTask({ id: task.id, title: task.title, description: task.description }); setOpenMenuTaskId(null); }}>
-                                        編集
-                                      </button>
-                                      <button className="w-full text-left px-3 py-2 text-red-600 hover:bg-gray-50" onClick={() => { setConfirmDelete({ open: true, taskId: task.id }); setOpenMenuTaskId(null); }}>
-                                        削除
-                                      </button>
-                                    </div>
-                                  ) : null}
-                                </div>
-                              );
-                            }
-
-                            // default: inline
                             return (
-                              <>
+                              <div className="flex gap-2">
                                 <AppButton variant="ghost" uiConfig={uiConfig} presentation={globalPres} onClick={() => setEditingTask({ id: task.id, title: task.title, description: task.description })}>
                                   {(globalPres === 'icon' || globalPres === 'icon_text') && <PencilIconSVG />}
                                   {globalPres === 'text' || globalPres === 'icon_text' ? "編集" : <span className="sr-only">編集</span>}
@@ -371,7 +323,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                                   {(globalPres === 'icon' || globalPres === 'icon_text') && <TrashIconSVG />}
                                   {globalPres === 'text' || globalPres === 'icon_text' ? "削除" : <span className="sr-only">削除</span>}
                                 </AppButton>
-                              </>
+                              </div>
                             );
                           })()}
                         </div>

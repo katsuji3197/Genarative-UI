@@ -36,6 +36,15 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
 
   const [isEvaluating, setIsEvaluating] = useState(false);
 
+  // アイコンテスト用のアイコン配列
+  const iconTestIcons = [
+    { Icon: HiOutlineBars3 },
+    { Icon: HiOutlineShare },
+    { Icon: HiOutlineDocumentDuplicate },
+    { Icon: HiOutlineArrowDownTray },
+    { Icon: HiOutlineHeart },
+  ];
+
   const handleScaleChange = (
     question: keyof PreSurveyAnswers,
     value: number
@@ -242,66 +251,20 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                 以下のアイコンが何を表しているか、テキストで入力してください。
               </h3>
               <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border">
-                    <HiOutlineBars3 className="w-6 h-6 text-gray-700" />
+                {iconTestIcons.map((icon, index) => (
+                  <div key={index} className="flex items-center space-x-4">
+                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border border-neutral-200">
+                      <icon.Icon className="w-6 h-6 text-gray-700" />
+                    </div>
+                    <input
+                      type="text"
+                      value={iconTestAnswers[index]}
+                      onChange={(e) => handleIconTestChange(index, e.target.value)}
+                      placeholder="このアイコンが表すものを入力"
+                      className="flex-1 p-2 border border-neutral-200 rounded"
+                    />
                   </div>
-                  <input
-                    type="text"
-                    value={iconTestAnswers[0]}
-                    onChange={(e) => handleIconTestChange(0, e.target.value)}
-                    placeholder="このアイコンが表すものを入力"
-                    className="flex-1 p-2 border rounded"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border">
-                    <HiOutlineShare className="w-6 h-6 text-gray-700" />
-                  </div>
-                  <input
-                    type="text"
-                    value={iconTestAnswers[1]}
-                    onChange={(e) => handleIconTestChange(1, e.target.value)}
-                    placeholder="このアイコンが表すものを入力"
-                    className="flex-1 p-2 border rounded"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border">
-                    <HiOutlineDocumentDuplicate className="w-6 h-6 text-gray-700" />
-                  </div>
-                  <input
-                    type="text"
-                    value={iconTestAnswers[2]}
-                    onChange={(e) => handleIconTestChange(2, e.target.value)}
-                    placeholder="このアイコンが表すものを入力"
-                    className="flex-1 p-2 border rounded"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border">
-                    <HiOutlineArrowDownTray className="w-6 h-6 text-gray-700" />
-                  </div>
-                  <input
-                    type="text"
-                    value={iconTestAnswers[3]}
-                    onChange={(e) => handleIconTestChange(3, e.target.value)}
-                    placeholder="このアイコンが表すものを入力"
-                    className="flex-1 p-2 border rounded"
-                  />
-                </div>
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border">
-                    <HiOutlineHeart className="w-6 h-6 text-gray-700" />
-                  </div>
-                  <input
-                    type="text"
-                    value={iconTestAnswers[4]}
-                    onChange={(e) => handleIconTestChange(4, e.target.value)}
-                    placeholder="このアイコンが表すものを入力"
-                    className="flex-1 p-2 border rounded"
-                  />
-                </div>
+                ))}
               </div>
             </div>
 

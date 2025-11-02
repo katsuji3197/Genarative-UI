@@ -243,17 +243,6 @@ export const useExperimentData = (participantId: string) => {
           headers.push(`presentation_button_${k}`);
         });
       }
-      
-      // taskAction設定
-      if (pres.taskAction && typeof pres.taskAction === "object") {
-        if (pres.taskAction.default !== undefined) {
-          headers.push("presentation_taskAction_default");
-        }
-        // modesは配列なので、カンマ区切りの文字列として出力
-        if (pres.taskAction.modes && Array.isArray(pres.taskAction.modes)) {
-          headers.push("presentation_taskAction_modes");
-        }
-      }
     }
 
     // 判断理由（reasons）を追加
@@ -325,15 +314,6 @@ export const useExperimentData = (participantId: string) => {
         value = ((data as any).presentation && 
                  (data as any).presentation.buttons && 
                  (data as any).presentation.buttons[key]) ?? "";
-      } else if (header === "presentation_taskAction_default") {
-        value = ((data as any).presentation && 
-                 (data as any).presentation.taskAction && 
-                 (data as any).presentation.taskAction.default) ?? "";
-      } else if (header === "presentation_taskAction_modes") {
-        const modes = ((data as any).presentation && 
-                      (data as any).presentation.taskAction && 
-                      (data as any).presentation.taskAction.modes);
-        value = modes && Array.isArray(modes) ? modes.join(";") : "";
       } else if (header.startsWith("reason_")) {
         const key = header.replace("reason_", "");
         value = ((data as any).reasons && (data as any).reasons[key]) ?? "";

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowLeftIcon, CheckIcon, PersonFillIcon } from "@primer/octicons-react";
 import AppButton from "./AppButton";
+import EditTaskModal from "./EditTaskModal";
 import { UIConfig, User } from "@/types";
 import personalizationConfig from "@/config/personalization.json";
 
@@ -24,8 +25,9 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
   const [formData, setFormData] = useState<User>({
     ...user,
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [editingField, setEditingField] = useState<'name' | 'email' | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
     console.log("⚙️ ProfileSettings - 適用中のUIConfig:", uiConfig);
@@ -36,36 +38,39 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
     return personalizationConfig[component][uiConfig[component]];
   };
 
-  const handleInputChange = (field: keyof User, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleEdit = (field: 'name' | 'email') => {
+    setEditingField(field);
+    setEditValue(field === 'name' ? formData.name : formData.email);
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleSave = () => {
-    if (formData.name.trim() === "") {
-      alert("ユーザー名を入力してください。");
+  const handleSaveEdit = (title: string) => {
+    if (!editingField) return;
+    
+    if (title.trim() === '') {
+      alert(`${editingField === 'name' ? 'ユーザー名' : 'メールアドレス'}を入力してください。`);
       return;
     }
 
-    onSaveUser(formData);
-    setIsEditing(false);
+    const updatedData = { ...formData, [editingField]: title };
+    setFormData(updatedData);
+    setEditingField(null);
     setShowSuccessMessage(true);
 
-    // タスク完了を記録（ユーザー名変更タスクのIDは 'username_change' として扱う）
-    onTaskComplete(true, 'username_change');
+    // ユーザー名変更の場合のみタスク完了を記録
+    if (editingField === 'name') {
+      onSaveUser(updatedData);
+      onTaskComplete(true, 'username_change');
+    } else {
+      onSaveUser(updatedData);
+    }
 
-    // 成功メッセージを3秒後に非表示
     setTimeout(() => {
       setShowSuccessMessage(false);
     }, 3000);
   };
 
-  const handleCancel = () => {
-    setFormData({ ...user });
-    setIsEditing(false);
+  const handleCloseModal = () => {
+    setEditingField(null);
   };
 
   const handleBackClick = () => {
@@ -78,12 +83,12 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className={`flex justify-between items-center h-16`}> 
-            <div className={`flex items-center ${getPersonalizedStyle("layout")}`}>
+            <div className={`flex items-center justify-center h-full ${getPersonalizedStyle("layout")}`}>
               <button
                 onClick={handleBackClick}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors mr-4"
+                className="flex items-center justify-center h-full space-x-2 text-gray-600 hover:text-gray-900 transition-colors mr-4 pt-3"
               >
-                <ArrowLeftIcon size={20} />
+                <ArrowLeftIcon size={20} className="h-full" />
                 <span className={`${getPersonalizedStyle("text")}`}>戻る</span>
               </button>
               <h1 className={`font-bold text-gray-900 ${getPersonalizedStyle("text")}`}>
@@ -116,7 +121,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                       "text"
                     )}`}
                   >
-                    ユーザー名を更新しました。
+                    {editingField === 'name' ? 'ユーザー名を更新しました。' : 'メールアドレスを更新しました。'}
                   </span>
                 </div>
               </div>
@@ -125,13 +130,21 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
             <div className={`${getPersonalizedStyle("layout")}`}>
               {/* ユーザー名表示/編集 */}
               <div>
-                <label
-                  className={`block font-medium text-gray-700 mb-2 ${getPersonalizedStyle(
-                    "text"
-                  )}`}
-                >
-                  ユーザー名
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label
+                    className={`block font-medium text-gray-700 ${getPersonalizedStyle(
+                      "text"
+                    )}`}
+                  >
+                    ユーザー名
+                  </label>
+                  <button 
+                    className="text-cyan-900 hover:text-cyan-600 underline text-sm font-medium transition-colors cursor-pointer"
+                    onClick={() => handleEdit('name')}
+                  >
+                    編集
+                  </button>
+                </div>
                 <div
                   className={`text-gray-600 mb-2 ${getPersonalizedStyle(
                     "description"
@@ -140,56 +153,41 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                   表示名を変更することができます。
                 </div>
 
-                {isEditing ? (
-                    <div className="space-y-4">
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className={`w-full ${getPersonalizedStyle(
-                        "input"
-                      )} focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg`}
-                      placeholder="ユーザー名を入力してください"
-                    />
-                    <div className="flex space-x-2">
-                      <AppButton variant="primary" uiConfig={uiConfig} onClick={handleSave}>保存</AppButton>
-                      <AppButton variant="secondary" uiConfig={uiConfig} onClick={handleCancel}>キャンセル</AppButton>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div
-                      className={`p-3 bg-gray-50 rounded border ${getPersonalizedStyle(
-                        "text"
-                      )}`}
-                    >
-                      {formData.name}
-                    </div>
-                    <AppButton variant="primary" uiConfig={uiConfig} onClick={handleEdit}>編集</AppButton>
-                  </div>
-                )}
-              </div>
-
-              {/* メールアドレス表示（読み取り専用） */}
-              <div>
-                <label
-                  className={`block font-medium text-gray-700 mb-2 ${getPersonalizedStyle(
+                <div
+                  className={`p-3 bg-gray-50 rounded border border-gray-200 ${getPersonalizedStyle(
                     "text"
                   )}`}
                 >
-                  メールアドレス
-                </label>
+                  {formData.name}
+                </div>
+              </div>
+
+              {/* メールアドレス表示（編集可能） */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label
+                    className={`block font-medium text-gray-700 ${getPersonalizedStyle(
+                      "text"
+                    )}`}
+                  >
+                    メールアドレス
+                  </label>
+                  <button 
+                    className="text-cyan-900 hover:text-cyan-600 underline text-sm font-medium transition-colors cursor-pointer"
+                    onClick={() => handleEdit('email')}
+                  >
+                    編集
+                  </button>
+                </div>
                 <div
                   className={`text-gray-600 mb-2 ${getPersonalizedStyle(
                     "description"
                   )}`}
                 >
-                  メールアドレスは変更できません。
+                  メールアドレスを変更することができます。
                 </div>
                 <div
-                  className={`p-3 bg-gray-50 rounded border text-gray-600 ${getPersonalizedStyle(
+                  className={`p-3 bg-gray-50 rounded border border-gray-200 text-gray-600 ${getPersonalizedStyle(
                     "text"
                   )}`}
                 >
@@ -201,7 +199,7 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
         </div>
 
         {/* 説明文 */}
-        <div className={`mt-8 ${getPersonalizedStyle("description")}`}>
+        <div className="mt-8">
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h3
               className={`font-semibold text-blue-900 mb-2 ${getPersonalizedStyle(
@@ -215,13 +213,25 @@ export const ProfileSettings: React.FC<ProfileSettingsProps> = ({
                 "text"
               )} space-y-1`}
             >
-              <li>1. 「編集」ボタンをクリックしてユーザー名を変更します</li>
-              <li>2. 新しいユーザー名を入力します</li>
-              <li>3. 「保存」ボタンをクリックして変更を保存します</li>
+              <li>1. 「編集」ボタンをクリックしてユーザー名またはメールアドレスを変更します</li>
+              <li>2. 新しい情報を入力します</li>
+              <li>3. 「保存する」ボタンをクリックして変更を保存します</li>
             </ol>
           </div>
         </div>
       </main>
+
+      {/* 編集モーダル */}
+      <EditTaskModal
+        open={editingField !== null}
+        initialTitle={editValue}
+        initialDescription=""
+        uiConfig={uiConfig}
+        onClose={handleCloseModal}
+        onSave={(title) => handleSaveEdit(title)}
+        heading={editingField === 'name' ? 'ユーザー名を編集' : 'メールアドレスを編集'}
+        showDescription={false}
+      />
     </div>
   );
 };

@@ -22,7 +22,7 @@ const variantClass: Record<Variant, string> = {
 
 export const AppButton: React.FC<AppButtonProps> = ({ variant = "primary", uiConfig, presentation, className = "", children, ...rest }) => {
   const personal = uiConfig ? personalizationConfig["button"][uiConfig.button] : "";
-  const base = `inline-flex items-center justify-center px-4 py-2 min-w-6 cursor-pointer rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2`;
+  const base = `inline-flex items-center justify-center px-2 py-2 min-w-4 w-fit cursor-pointer rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2`;
 
   // normalize children
   const childArray = React.Children.toArray(children);

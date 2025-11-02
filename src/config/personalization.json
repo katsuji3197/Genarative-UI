@@ -37,10 +37,6 @@
       "menu": "icon",
       "addTask": "icon",
       "default": "icon"
-    },
-    "taskAction": {
-      "default": "inline",
-      "modes": ["inline", "menu", "icon-only"]
     }
   }
 }

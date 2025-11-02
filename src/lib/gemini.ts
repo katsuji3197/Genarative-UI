@@ -50,7 +50,6 @@ export class GeminiService {
     const result: PresentationConfig = {
       buttons: base.buttons || { default: (base.default as PresentationMode) || "icon" },
       global: (base.global as PresentationMode) || (base.default as PresentationMode) || "icon",
-      taskAction: base.taskAction || { default: "inline", modes: ["inline", "menu", "icon-only"] },
     };
 
     // Simple override rules based on attributes (can be extended)
@@ -63,8 +62,6 @@ export class GeminiService {
         if (score <= 2) {
           // use text-heavy presentation
           result.global = "text";
-          // promote taskAction to inline so labels show for edit/delete
-          result.taskAction = { default: "inline", modes: ["inline", "menu", "icon-only"] };
         } else if (score === 3) {
           result.global = "icon_text";
         } else {
@@ -336,10 +333,6 @@ export class GeminiService {
       "menu": "icon" | "text" | "icon_text",
       "addTask": "icon" | "text" | "icon_text",
       "default": "icon" | "text" | "icon_text"
-    },
-    "taskAction": {
-      "default": "inline" | "menu" | "icon-only",
-      "modes": ["inline", "menu", "icon-only"]
     }
   },
   "reasons": {
@@ -451,9 +444,8 @@ export class GeminiService {
           
           const buttons = presObj.buttons && typeof presObj.buttons === "object" ? presObj.buttons : { default: "icon" };
           const global = presObj.global || presObj.default || "icon";
-          const taskAction = presObj.taskAction || { default: "inline", modes: ["inline", "menu", "icon-only"] };
           
-          validated.presentation = { buttons, global, taskAction } as PresentationConfig;
+          validated.presentation = { buttons, global } as PresentationConfig;
           console.log("  ✅ presentation 設定を適用:", validated.presentation);
         } catch (e) {
           console.warn("  ❌ presentation 設定の処理に失敗:", e);
@@ -554,10 +546,6 @@ export class GeminiService {
         menu: "icon", // メニューは使用頻度が高いのでアイコンのみ
         addTask: global,
         default: global,
-      },
-      taskAction: {
-        default: "inline" as TaskActionMode,
-        modes: ["inline", "menu", "icon-only"] as TaskActionMode[],
       },
     };
     

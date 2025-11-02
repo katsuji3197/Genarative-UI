@@ -61,28 +61,33 @@ const RightDrawerMenu: React.FC<RightDrawerMenuProps> = ({ isOpen, onClose, onSe
         onPointerLeave={onPointerLeave}
         className={`fixed top-0 h-full ${widthClass} max-w-full bg-white shadow-xl transform transition-transform duration-200 ease-in-out ${isRight ? 'right-0' : 'left-0'} ${active ? 'translate-x-0 z-50' : (isRight ? 'translate-x-full z-40' : '-translate-x-full z-40')}`}
       >
-        <div className="h-full flex flex-col">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="font-bold">メニュー</h3>
-            <button onClick={onClose} className="text-gray-600 hover:text-gray-900">閉じる</button>
-          </div>
+        <div className="h-full flex flex-col p-4">
+          {isRight && (
+            <>
+              <div className=" pb-4 flex items-center justify-between">
+                <h3 className="font-bold">メニュー</h3>
+                <button onClick={onClose} className="text-gray-600 hover:text-gray-900">閉じる</button>
+              </div>
+              <div className="bg-neutral-400 h-px w-full"/>
+            </>
+          )}
 
-          <nav className="p-4 flex-1 overflow-auto">
+          <nav className={`flex-1 overflow-auto ${isRight ? 'pt-4' : ''}`}>
             {children ? (
               children
             ) : (
               <ul className="space-y-2">
                 <li>
-                  <button onClick={() => { onSelect?.('profile'); }} className="w-full text-left px-4 py-2 rounded hover:bg-gray-50">アカウント設定</button>
+                  <button onClick={() => { onSelect?.('profile'); }} className="w-full text-left py-2 rounded hover:bg-gray-50">アカウント設定</button>
                 </li>
                 <li>
-                  <button onClick={() => { onSelect?.('notifications'); }} className="w-full text-left px-4 py-2 rounded hover:bg-gray-50">通知設定</button>
+                  <button onClick={() => { onSelect?.('notifications'); }} className="w-full text-left py-2 rounded hover:bg-gray-50">通知設定</button>
                 </li>
                 <li>
-                  <button onClick={() => { onSelect?.('help'); }} className="w-full text-left px-4 py-2 rounded hover:bg-gray-50">ヘルプ</button>
+                  <button onClick={() => { onSelect?.('help'); }} className="w-full text-left py-2 rounded hover:bg-gray-50">ヘルプ</button>
                 </li>
                 <li>
-                  <button onClick={() => { onSelect?.('about'); }} className="w-full text-left px-4 py-2 rounded hover:bg-gray-50">このアプリについて</button>
+                  <button onClick={() => { onSelect?.('about'); }} className="w-full text-left py-2 rounded hover:bg-gray-50">このアプリについて</button>
                 </li>
               </ul>
             )}
