@@ -60,10 +60,10 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ open, initialTitle
         </div>
 
         <div className="mt-6 flex justify-end items-center space-x-3">
-          <AppButton variant="secondary" uiConfig={uiConfig} presentation={(uiConfig as any).presentation?.global ?? (personalizationConfig as any).presentation?.global}>
+          <AppButton variant="secondary" uiConfig={uiConfig} presentation="text">
             キャンセル
           </AppButton>
-          <AppButton variant="primary" uiConfig={uiConfig} presentation={(uiConfig as any).presentation?.global ?? (personalizationConfig as any).presentation?.global} onClick={() => onSave(title.trim() || initialTitle, description)}>
+          <AppButton variant="primary" uiConfig={uiConfig} presentation="text" onClick={() => onSave(title.trim() || initialTitle, description)}>
             保存する
           </AppButton>
         </div>

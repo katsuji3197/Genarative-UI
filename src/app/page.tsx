@@ -59,12 +59,12 @@ export default function Home() {
     kanban_add: false,
   });
   // ドロワーに表示するラベル
-  const conditionLabels: Record<string, string> = {
-    username_change: 'ユーザー名を変更',
-    kanban_drag: 'カンバンでドラッグ移動',
-    kanban_edit: 'カンバンで編集',
-    kanban_delete: 'カンバンで削除',
-    kanban_add: 'カンバンで追加',
+  const conditionLabels: Record<string, { label: string; description: string }> = {
+    username_change: { label: 'ユーザー名を変更', description: 'プロフィール設定で任意のユーザー名を変更してください' },
+    kanban_drag: { label: 'カンバンでドラッグ移動', description: 'タスクをドラッグして任意の別の列に移動してください' },
+    kanban_edit: { label: 'タスクを編集', description: 'タスクのタイトル、または説明を任意のものに編集してください' },
+    kanban_delete: { label: 'カンバンで削除', description: 'タスクを削除してください' },
+    kanban_add: { label: 'カンバンで追加', description: '新しい任意のタスクを追加してください' },
   };
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const openTimerRef = useRef<number | null>(null);
@@ -425,9 +425,12 @@ export default function Home() {
           <h4 className="font-bold mb-2">実験チェックリスト</h4>
           <ul className="space-y-2 text-sm">
             {Object.keys(conditionLabels).map((key) => (
-              <li key={key} className="flex items-center">
-                <input type="checkbox" checked={!!experimentConditions[key]} readOnly className="mr-2" />
-                <span>{conditionLabels[key]}</span>
+              <li key={key} className="flex items-start">
+                <input type="checkbox" checked={!!experimentConditions[key]} readOnly className="mr-2 mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span>{conditionLabels[key].label}</span>
+                  <p className="text-xs text-gray-500">{conditionLabels[key].description}</p>
+                </div>
               </li>
             ))}
           </ul>

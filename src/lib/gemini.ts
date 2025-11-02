@@ -371,10 +371,11 @@ export class GeminiService {
 - **expert**: q3_text_issue <= 2（小さい文字でも問題ない）
 - **standard**: それ以外
 
-### button（ボタンサイズ）
+### button（ボタンサイズと押しやすさ）
 - **novice**: q4_tap_error >= 4（よく押し間違える）
 - **expert**: q4_tap_error <= 2（押し間違えない）
 - **standard**: それ以外
+- 注：button設定は personalization.json の buttonSize.plusButton で実際のスタイル（w-12 h-12など）に変換されます
 
 ### input（入力フィールド）
 - **novice**: q4_tap_error >= 4 または q1_confidence <= 2

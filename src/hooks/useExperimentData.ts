@@ -94,6 +94,8 @@ export const useExperimentData = (participantId: string) => {
       // presentation と reasons も保存（存在する場合）
       ...(presentation ? { presentation } : {}),
       ...(reasons ? { reasons } : {}),
+      // buttonSize情報も保存（button設定から決定される）
+      [`ui_button_size_plus`]: config.button, // buttonSize.plusButton[config.button] となる設定値
     }));
     
     console.log("✅ UIConfig を保存しました");
@@ -221,7 +223,8 @@ export const useExperimentData = (participantId: string) => {
       "ui_text",
       "ui_button",
       "ui_input",
-      "ui_description"
+      "ui_description",
+      "ui_button_size_plus"
     );
 
     // Presentation設定を追加

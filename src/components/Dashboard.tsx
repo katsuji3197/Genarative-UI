@@ -107,8 +107,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
   };
 
   const getPersonalizedStyle = (component: keyof UIConfig) => {
-    // personalizationConfig is a JSON import; cast to any for flexible indexing
-    return (personalizationConfig as any)[component][uiConfig[component]];
+    return (personalizationConfig as any)[component][(uiConfig as any)[component]];
   };
 
   const getPresentation = (buttonKey?: string) => {
@@ -132,18 +131,6 @@ const DashboardComponent: React.FC<DashboardProps> = ({
     if (uiPres && uiPres.taskAction && uiPres.taskAction.default) return uiPres.taskAction.default;
     const base = (personalizationConfig as any)["presentation"] || {};
     return base.taskAction?.default || "inline";
-  };
-
-  const getPlusButtonClass = () => {
-    switch (uiConfig.button) {
-      case 'novice':
-        return 'ml-2 bg-white text-gray-600 rounded-sm w-12 h-12 text-lg flex items-center justify-center shadow hover:shadow-md';
-      case 'expert':
-        return 'ml-2 bg-white text-gray-600 rounded-sm w-8 h-8 text-sm flex items-center justify-center shadow hover:shadow-md';
-      case 'standard':
-      default:
-        return 'ml-2 bg-white text-gray-600 rounded-sm w-10 h-10 text-base flex items-center justify-center shadow hover:shadow-md';
-    }
   };
 
   // Ask Gemini for a recommendation for a specific button (async, sets presentationOverride)
@@ -296,7 +283,7 @@ const DashboardComponent: React.FC<DashboardProps> = ({
         <div className={`${getPersonalizedStyle("layout")}`}>
           <div className="mb-8">
             <h2 className={`font-bold text-gray-900 ${getPersonalizedStyle("text")}`}>{projectData.title}</h2>
-            <p className={`text-gray-600 mt-2 ${getPersonalizedStyle("description")}`}>研究プロジェクトの進捗を管理します。タスクは「未着手」「進行中」「完了」の3つのステータスで管理されています。</p>
+            <p className="text-gray-600 mt-2">研究プロジェクトの進捗を管理します。タスクは「未着手」「進行中」「完了」の3つのステータスで管理されています。</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -308,11 +295,11 @@ const DashboardComponent: React.FC<DashboardProps> = ({
                     <span className={`ml-2 text-sm text-gray-500 ${getPersonalizedStyle("text")}`}>({getTasksByStatus(status).length})</span>
                   </h3>
                   {/* 右上の + ボタン */}
-                  <div className="flex items-center space-x-2">
-                    <AppButton variant="ghost" uiConfig={uiConfig} presentation={getPresentation('addTask')} className={getPlusButtonClass()} onClick={() => setAddingToColumn(status)}>
+                  <div className="flex items-center space-x-2 w-fit">
+                    <AppButton variant="ghost" uiConfig={uiConfig} presentation={getPresentation('addTask')} className={(personalizationConfig as any).buttonSize?.plusButton?.[(uiConfig as any).button] || ''} onClick={() => setAddingToColumn(status)}>
                       {(getPresentation('addTask') === 'icon' || getPresentation('addTask') === 'icon_text') && (
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                          <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden className="shrink-0">
+                          <path d="M8 3v10M3 8h10" stroke="#000000" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       )}
                       {getPresentation('addTask') === 'text' || getPresentation('addTask') === 'icon_text' ? '追加' : <span className="sr-only">追加</span>}
