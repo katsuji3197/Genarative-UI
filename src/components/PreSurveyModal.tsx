@@ -11,21 +11,17 @@ import {
   HiOutlineArrowDownTray,
   HiOutlineHeart,
 } from "react-icons/hi2";
+import { UI_COMPARISON_QUESTIONS } from "@/constants/uiComparison";
 
 interface PreSurveyModalProps {
   onSubmit: (answers: PreSurveyAnswers) => void;
 }
 
 export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
-  const [answers, setAnswers] = useState<PreSurveyAnswers>({
-    q1_confidence: 0,
-    q2_preference: 0,
-    q3_text_issue: 0,
-    q4_tap_error: 0,
-    q5_priority: 0,
-    q6_icon_score: "",
-  });
-
+  // UI比較テストの回答を管理
+  const [uiComparisons, setUiComparisons] = useState<Record<string, "A" | "B">>({});
+  
+  // アイコンテストの回答を管理
   const [iconTestAnswers, setIconTestAnswers] = useState<string[]>([
     "",
     "",
@@ -35,6 +31,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
   ]);
 
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [currentStep, setCurrentStep] = useState<"ui_comparison" | "icon_test">("ui_comparison");
 
   // アイコンテスト用のアイコン配列
   const iconTestIcons = [
@@ -45,11 +42,8 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
     { Icon: HiOutlineHeart },
   ];
 
-  const handleScaleChange = (
-    question: keyof PreSurveyAnswers,
-    value: number
-  ) => {
-    setAnswers((prev) => ({ ...prev, [question]: value }));
+  const handleUIComparisonChange = (questionId: string, value: "A" | "B") => {
+    setUiComparisons((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleIconTestChange = (index: number, value: string) => {
@@ -58,18 +52,22 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
     setIconTestAnswers(newAnswers);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (
-      answers.q1_confidence === 0 ||
-      answers.q2_preference === 0 ||
-      answers.q3_text_issue === 0 ||
-      answers.q4_tap_error === 0 ||
-      answers.q5_priority === 0
-    ) {
+  const handleNextToIconTest = () => {
+    // すべてのUI比較質問に回答されているかチェック
+    const allAnswered = UI_COMPARISON_QUESTIONS.every(
+      (q) => uiComparisons[q.questionId]
+    );
+    
+    if (!allAnswered) {
       alert("すべての質問にお答えください。");
       return;
     }
+    
+    setCurrentStep("icon_test");
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     // アイコンクイズの回答をGemini APIで採点
     setIsEvaluating(true);
@@ -78,9 +76,16 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
       const iconScore = await geminiService.evaluateIconAnswers(
         iconTestAnswers
       );
-      const updatedAnswers = { ...answers, q6_icon_score: iconScore };
+      
+      const finalAnswers: PreSurveyAnswers = {
+        ui_comparisons: uiComparisons,
+        icon_score: iconScore,
+        icon_answers: iconTestAnswers,
+      };
+      
       console.log("✅ 採点完了:", iconScore);
-      onSubmit(updatedAnswers);
+      console.log("📊 最終回答:", finalAnswers);
+      onSubmit(finalAnswers);
     } catch (error) {
       console.error("Error evaluating icons:", error);
       // エラーの場合は簡易的なローカル採点にフォールバック
@@ -102,8 +107,13 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
       });
       const fallbackScore = `${correctCount}/5`;
       console.log("📝 フォールバック採点:", fallbackScore);
-      const updatedAnswers = { ...answers, q6_icon_score: fallbackScore };
-      onSubmit(updatedAnswers);
+      
+      const finalAnswers: PreSurveyAnswers = {
+        ui_comparisons: uiComparisons,
+        icon_score: fallbackScore,
+        icon_answers: iconTestAnswers,
+      };
+      onSubmit(finalAnswers);
     } finally {
       setIsEvaluating(false);
     }
@@ -111,195 +121,185 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
 
   return (
     <div className="fixed inset-0 bg-neutral-100 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full m-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-6 text-center">
-            事前アンケート
+            {currentStep === "ui_comparison" ? "UI比較アンケート" : "アイコンテスト"}
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 質問1: デジタル機器の操作への自信 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                1.
-                デジタル機器（スマートフォン、パソコンなど）の操作に自信はありますか？
-              </h3>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">とても自信がある</span>
-                <div className="flex space-x-2">
-                  {[5, 4, 3, 2, 1].map((value) => (
-                    <label key={value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="q1_confidence"
-                        value={value}
-                        checked={answers.q1_confidence === value}
-                        onChange={() => handleScaleChange("q1_confidence", value)}
-                        className="mr-1"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <span className="text-sm">全く自信がない</span>
-              </div>
-            </div>
-
-            {/* 質問2: 情報量に対する好み */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                2. 画面上の情報量について、どの程度好みますか？
-              </h3>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">情報量が多い</span>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <label key={value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="q2_preference"
-                        value={value}
-                        checked={answers.q2_preference === value}
-                        onChange={() => handleScaleChange("q2_preference", value)}
-                        className="mr-1"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <span className="text-sm">情報量が少ない</span>
-              </div>
-            </div>
-
-            {/* 質問3: 文字サイズへの要求 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                3. 文字サイズについて、どの程度見やすいですか？
-              </h3>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">小さい文字でも見やすい</span>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <label key={value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="q3_text_issue"
-                        value={value}
-                        checked={answers.q3_text_issue === value}
-                        onChange={() => handleScaleChange("q3_text_issue", value)}
-                        className="mr-1"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <span className="text-sm">大きい文字の方がいい</span>
-              </div>
-            </div>
-
-            {/* 質問4: 操作の正確性への意識 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                4. ボタンやリンクを押すとき、どの程度押し間違いをしますか？
-              </h3>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">ほとんど押し間違えない</span>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <label key={value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="q4_tap_error"
-                        value={value}
-                        checked={answers.q4_tap_error === value}
-                        onChange={() => handleScaleChange("q4_tap_error", value)}
-                        className="mr-1"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <span className="text-sm">よく押し間違える</span>
-              </div>
-            </div>
-
-            {/* 質問5: 操作における優先順位 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                5. 操作において、どちらを重視しますか？
-              </h3>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm">速さ重視</span>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <label key={value} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="q5_priority"
-                        value={value}
-                        checked={answers.q5_priority === value}
-                        onChange={() => handleScaleChange("q5_priority", value)}
-                        className="mr-1"
-                      />
-                    </label>
-                  ))}
-                </div>
-                <span className="text-sm">正確性重視</span>
-              </div>
-            </div>
-
-            {/* 質問6: アイコンの理解度 */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">
-                6.
-                以下のアイコンが何を表しているか、テキストで入力してください。
-              </h3>
-              <div className="space-y-4">
-                {iconTestIcons.map((icon, index) => (
-                  <div key={index} className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border border-neutral-200">
-                      <icon.Icon className="w-6 h-6 text-gray-700" />
-                    </div>
-                    <input
-                      type="text"
-                      value={iconTestAnswers[index]}
-                      onChange={(e) => handleIconTestChange(index, e.target.value)}
-                      placeholder="このアイコンが表すものを入力"
-                      className="flex-1 p-2 border border-neutral-200 rounded"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-center pt-6">
-              <AppButton uiConfig={{ layout: 'standard', text: 'standard', button: 'standard', input: 'standard', description: 'standard' }} type="submit" variant={isEvaluating ? 'secondary' : 'primary'} disabled={isEvaluating}>
-                {isEvaluating ? (
-                  <span className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+          {currentStep === "ui_comparison" ? (
+            // UI比較アンケート
+            <div className="space-y-8">
+              <p className="text-gray-600 mb-4">
+                以下の10問について、どちらのUIが操作しやすいと感じるか選択してください。
+              </p>
+              {UI_COMPARISON_QUESTIONS.map((question, index) => (
+                <div key={question.questionId} className="border-b pb-6">
+                  <h3 className="text-lg font-semibold mb-4">
+                    {index + 1}. {question.description}
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* オプション A */}
+                    <div
+                      onClick={() => handleUIComparisonChange(question.questionId, "A")}
+                      className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                        uiComparisons[question.questionId] === "A"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    採点中...
-                  </span>
-                ) : (
-                  "回答を送信"
-                )}
-              </AppButton>
+                      <div className="flex items-center mb-3">
+                        <input
+                          type="radio"
+                          name={question.questionId}
+                          value="A"
+                          checked={uiComparisons[question.questionId] === "A"}
+                          onChange={() => handleUIComparisonChange(question.questionId, "A")}
+                          className="mr-2"
+                        />
+                        <span className="font-semibold">オプション A</span>
+                      </div>
+                      {/* 画像のプレースホルダー */}
+                      <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
+                        <span className="text-gray-400">画像: {question.optionA.imagePath}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {question.optionA.description}
+                      </p>
+                    </div>
+
+                    {/* オプション B */}
+                    <div
+                      onClick={() => handleUIComparisonChange(question.questionId, "B")}
+                      className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                        uiComparisons[question.questionId] === "B"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center mb-3">
+                        <input
+                          type="radio"
+                          name={question.questionId}
+                          value="B"
+                          checked={uiComparisons[question.questionId] === "B"}
+                          onChange={() => handleUIComparisonChange(question.questionId, "B")}
+                          className="mr-2"
+                        />
+                        <span className="font-semibold">オプション B</span>
+                      </div>
+                      {/* 画像のプレースホルダー */}
+                      <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
+                        <span className="text-gray-400">画像: {question.optionB.imagePath}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {question.optionB.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-center pt-6">
+                <AppButton
+                  uiConfig={{
+                    layout: "standard",
+                    text: "standard",
+                    button: "standard",
+                    input: "standard",
+                    description: "standard",
+                  }}
+                  onClick={handleNextToIconTest}
+                  variant="primary"
+                >
+                  次へ（アイコンテスト）
+                </AppButton>
+              </div>
             </div>
-          </form>
+          ) : (
+            // アイコンテスト
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <p className="text-gray-600 mb-4">
+                  以下のアイコンが何を表しているか、テキストで入力してください。
+                </p>
+                <div className="space-y-4">
+                  {iconTestIcons.map((icon, index) => (
+                    <div key={index} className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center border border-neutral-200">
+                        <icon.Icon className="w-6 h-6 text-gray-700" />
+                      </div>
+                      <input
+                        type="text"
+                        value={iconTestAnswers[index]}
+                        onChange={(e) => handleIconTestChange(index, e.target.value)}
+                        placeholder="このアイコンが表すものを入力"
+                        className="flex-1 p-2 border border-neutral-200 rounded"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-center gap-4 pt-6">
+                <AppButton
+                  uiConfig={{
+                    layout: "standard",
+                    text: "standard",
+                    button: "standard",
+                    input: "standard",
+                    description: "standard",
+                  }}
+                  onClick={() => setCurrentStep("ui_comparison")}
+                  variant="secondary"
+                  type="button"
+                >
+                  戻る
+                </AppButton>
+                <AppButton
+                  uiConfig={{
+                    layout: "standard",
+                    text: "standard",
+                    button: "standard",
+                    input: "standard",
+                    description: "standard",
+                  }}
+                  type="submit"
+                  variant={isEvaluating ? "secondary" : "primary"}
+                  disabled={isEvaluating}
+                >
+                  {isEvaluating ? (
+                    <span className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      採点中...
+                    </span>
+                  ) : (
+                    "回答を送信"
+                  )}
+                </AppButton>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>

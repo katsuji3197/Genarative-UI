@@ -17,14 +17,14 @@ export interface UIConfigWithPresentation extends UIConfig {
 // 実験モード
 export type ExperimentMode = "experimental" | "control";
 
-// 事前アンケート回答
+// 事前アンケート回答（UI比較テスト + アイコンテスト）
 export interface PreSurveyAnswers {
-  q1_confidence: number; // 1-5
-  q2_preference: number; // 1-5 (高密度 → 低密度)
-  q3_text_issue: number; // 1-5 (小さい文字でも見やすい → 小さい文字は見づらい)
-  q4_tap_error: number; // 1-5 (押し間違えない → よく押し間違える)
-  q5_priority: number; // 1-5 (速さ重視 → 正確性重視)
-  q6_icon_score: string; // 例: "3/5"
+  // UI比較テストの回答（A or B）
+  ui_comparisons: Record<string, "A" | "B">; // questionId => 選択した回答
+  // アイコンテストのスコア
+  icon_score: string; // 例: "3/5"
+  // アイコンテストのユーザー回答
+  icon_answers: string[]; // 各アイコンのユーザー入力
 }
 
 // 事後アンケート回答
@@ -47,12 +47,12 @@ export interface ExperimentData {
   ui_description: StyleVariant;
   presentation?: PresentationConfig; // UI表示方法の設定
   reasons?: Record<string, string>; // AI判断理由
-  pre_q1_confidence: number;
-  pre_q2_preference: number;
-  pre_q3_text_issue: number;
-  pre_q4_tap_error: number;
-  pre_q5_priority: number;
-  pre_q6_icon_score: string;
+  // UI比較テストの回答（各questionIdの選択結果）
+  pre_ui_comparisons: Record<string, "A" | "B">;
+  // アイコンテストのスコア
+  pre_icon_score: string;
+  // アイコンテストのユーザー回答（各アイコンへの入力）
+  pre_icon_answers: string[];
   time_dashboard: number;
   time_profile: number;
   time_task_total: number;
@@ -63,7 +63,7 @@ export interface ExperimentData {
   post_q3_preference: number;
   post_q4_comment: string;
   // タスクごとの時間計測など、動的なフィールドをサポート
-  [key: string]: any;
+  [key: string]: string | number | string[] | Record<string, "A" | "B"> | PresentationConfig | Record<string, string> | ExperimentMode | StyleVariant | undefined;
 }
 
 // 時間計測関連

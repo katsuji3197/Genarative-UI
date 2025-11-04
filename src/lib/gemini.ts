@@ -1,5 +1,6 @@
-import { PreSurveyAnswers, GeminiResponse, PresentationConfig, PresentationMode, TaskActionMode, GeminiResponseExtended } from "@/types";
+import { PreSurveyAnswers, GeminiResponse, PresentationConfig, PresentationMode, GeminiResponseExtended } from "@/types";
 import personalizationConfig from "@/config/personalization.json";
+import { UI_COMPARISON_QUESTIONS, CATEGORY_TO_UI_MAPPING } from "@/constants/uiComparison";
 
 type UserAttributes = {
   confidence?: number;
@@ -29,7 +30,12 @@ export class GeminiService {
    * アンケート回答からキャッシュキーを生成
    */
   private generateCacheKey(answers: PreSurveyAnswers): string {
-    return `${answers.q1_confidence}-${answers.q2_preference}-${answers.q3_text_issue}-${answers.q4_tap_error}-${answers.q5_priority}-${answers.q6_icon_score}`;
+    // UI比較の回答をソートしてキーに含める
+    const comparisons = Object.entries(answers.ui_comparisons)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join('|');
+    return `${comparisons}-icon:${answers.icon_score}`;
   }
 
   /**
@@ -44,12 +50,12 @@ export class GeminiService {
    */
   getPresentationForUser(userAttributes: UserAttributes): PresentationConfig {
     // base config from JSON (may not have strict typing)
-    const base: any = (personalizationConfig as any)["presentation"] || {};
+    const base = (personalizationConfig as Record<string, unknown>)["presentation"] || {};
 
     // start with defaults
     const result: PresentationConfig = {
-      buttons: base.buttons || { default: (base.default as PresentationMode) || "icon" },
-      global: (base.global as PresentationMode) || (base.default as PresentationMode) || "icon",
+      buttons: (base as Record<string, unknown>).buttons as Record<string, PresentationMode> || { default: ((base as Record<string, unknown>).default as PresentationMode) || "icon" },
+      global: ((base as Record<string, unknown>).global as PresentationMode) || ((base as Record<string, unknown>).default as PresentationMode) || "icon",
     };
 
     // Simple override rules based on attributes (can be extended)
@@ -298,25 +304,43 @@ export class GeminiService {
   }
 
   private buildPrompt(answers: PreSurveyAnswers): string {
-    return `あなたはUI/UXの専門家です。ユーザーの事前アンケート結果に基づいて、最適なUI設定を提案してください。
+    // UI比較テストの結果を整形
+    const comparisonResults = UI_COMPARISON_QUESTIONS.map((question) => {
+      const userChoice = answers.ui_comparisons[question.questionId];
+      const chosenOption = userChoice === "A" ? question.optionA : question.optionB;
+      const notChosenOption = userChoice === "A" ? question.optionB : question.optionA;
+      
+      return {
+        questionId: question.questionId,
+        category: question.category,
+        description: question.description,
+        userChoice: userChoice,
+        chosenOption: chosenOption.description,
+        notChosenOption: notChosenOption.description,
+      };
+    });
 
-# 入力データ（ユーザーの事前アンケート結果）
-{
-  "q1_confidence": ${answers.q1_confidence},
-  "q2_preference": ${answers.q2_preference},
-  "q3_text_issue": ${answers.q3_text_issue},
-  "q4_tap_error": ${answers.q4_tap_error},
-  "q5_priority": ${answers.q5_priority},
-  "q6_icon_score": "${answers.q6_icon_score}"
-}
+    return `あなたはUI/UXの専門家です。ユーザーのUI比較テストとアイコンテストの結果に基づいて、最適なUI設定を提案してください。
 
-# アンケート項目の正確な意味（重要：スケールの方向に注意）
-- q1_confidence (1-5): デジタル機器操作への自信（5=とても自信がある、1=全く自信がない）
-- q2_preference (1-5): 画面上の情報量の好み（1=情報量が多い方が好き、5=情報量が少ない方が好き）
-- q3_text_issue (1-5): 文字サイズの見やすさ（1=小さい文字でも見やすい、5=大きい文字の方がいい）
-- q4_tap_error (1-5): ボタンの押し間違いの頻度（1=ほとんど押し間違えない、5=よく押し間違える）
-- q5_priority (1-5): 操作の優先順位（1=速さ重視、5=正確性重視）
-- q6_icon_score: アイコン理解度テストの結果（X/5の形式、5点満点）
+# 入力データ（ユーザーの回答結果）
+
+## UI比較テストの結果
+ユーザーは10問のUI比較テストに回答しました。各質問で、2つのUIオプション（A or B）から操作しやすいと感じる方を選択しました。
+
+${comparisonResults.map((result, index) => `
+### 質問${index + 1}: ${result.description}
+- **カテゴリー**: ${result.category}
+- **ユーザーの選択**: オプション ${result.userChoice}
+- **選択したUI**: ${result.chosenOption}
+- **選択しなかったUI**: ${result.notChosenOption}
+`).join('\n')}
+
+## アイコンテストの結果
+- **アイコン理解度スコア**: ${answers.icon_score}
+
+## カテゴリーとUI設定の対応
+各カテゴリーとUI設定の推奨値は以下の通りです：
+${JSON.stringify(CATEGORY_TO_UI_MAPPING, null, 2)}
 
 # 出力形式
 以下の厳密なJSON形式で出力してください。説明文は含めず、JSONのみを出力してください。
@@ -336,16 +360,17 @@ export class GeminiService {
     }
   },
   "reasons": {
-    "layout": "判断理由",
-    "text": "判断理由",
-    "button": "判断理由",
-    "input": "判断理由",
-    "description": "判断理由",
-    "presentation": "判断理由"
+    "layout": "判断理由（ユーザーの選択を具体的に言及）",
+    "text": "判断理由（ユーザーの選択を具体的に言及）",
+    "button": "判断理由（ユーザーの選択を具体的に言及）",
+    "input": "判断理由（ユーザーの選択を具体的に言及）",
+    "description": "判断理由（ユーザーの選択を具体的に言及）",
+    "presentation_global": "presentation.global（アイコンとテキストの全体的な表示方法）を選択した理由。アイコンスコアと関連する質問の選択を具体的に言及",
+    "presentation_menu": "presentation.buttons.menu（メニューボタンの表示方法）を選択した理由。q8_menu_styleの選択を具体的に言及"
   }
 }
 
-# 詳細な判断基準
+# 判断方法
 
 ## 各設定値の意味
 - **novice**: 初心者向け（大きなボタン、多めの説明、シンプルなレイアウト）
@@ -354,56 +379,46 @@ export class GeminiService {
 
 ## 判断ロジック
 
-### layout（レイアウトの複雑さ）
-- **novice**: q1_confidence <= 2 または q2_preference >= 4（シンプル好き）
-- **expert**: q1_confidence >= 4 かつ q2_preference <= 2（情報量多め好き）
-- **standard**: それ以外
+1. **各カテゴリーでユーザーが選択したオプション**を確認
+2. **CATEGORY_TO_UI_MAPPINGを参照**して、選択したオプションに対応するUI設定（novice/expert）を特定
+3. **関連するカテゴリーの選択を統合**して、最終的なUI設定を決定
+   - button_size, button_spacing → button設定
+   - text_size, text_hierarchy → text設定
+   - layout_density, card_design → layout設定
+   - icon_presentation, menu_style → presentation設定
+   - description_detail, input_label → description, input設定
 
-### text（テキストサイズ）
-- **novice**: q3_text_issue >= 4（大きい文字が必要）
-- **expert**: q3_text_issue <= 2（小さい文字でも問題ない）
-- **standard**: それ以外
+4. **アイコンスコア**を参考にpresentation.globalを調整：
+   - スコアが0-2/5: "text"（アイコン理解度が低い）
+   - スコアが3/5: "icon_text"（中程度）
+   - スコアが4-5/5: "icon" または "icon_text"（高い）
 
-### button（ボタンサイズと押しやすさ）
-- **novice**: q4_tap_error >= 4（よく押し間違える）
-- **expert**: q4_tap_error <= 2（押し間違えない）
-- **standard**: それ以外
-- 注：button設定は personalization.json の buttonSize.plusButton で実際のスタイル（w-12 h-12など）に変換されます
+5. **presentation.buttons**の個別設定：
+   - **menu**: q8_menu_style（メニューの表示）の選択を優先的に反映
+     * optionA選択（アイコンのみ）→ "icon"
+     * optionB選択（テキスト付き）→ "icon_text"
+   - **addTask**: presentation.globalと同じ
+   - **default**: presentation.globalと同じ
 
-### input（入力フィールド）
-- **novice**: q4_tap_error >= 4 または q1_confidence <= 2
-- **expert**: q4_tap_error <= 2 かつ q1_confidence >= 4
-- **standard**: それ以外
+6. **一貫性を保つ**: 関連する設定は矛盾しないように調整
 
-### description（説明の詳細さ）
-- **novice**: q1_confidence <= 2 または q5_priority >= 4（正確性重視）
-- **expert**: q1_confidence >= 4 かつ q5_priority <= 2（速さ重視）
-- **standard**: それ以外
+7. **reasons**には、各設定項目の判断理由を記載：
+   - **layout, text, button, input, description**: ユーザーがどの質問でどのオプションを選んだかを具体的に記載
+   - **presentation_global**: アイコンスコアと関連する質問（q7_icon_presentation）の選択を具体的に記載
+   - **presentation_menu**: q8_menu_styleでの選択とその理由を具体的に記載
 
-### presentation.global（アイコンとテキストの表示）
-アイコンスコアを解析：
-- スコアが0-1/5: **"text"**（アイコン理解度が低い）
-- スコアが2/5: **"text"**（まだ低い）
-- スコアが3/5: **"icon_text"**（中程度、両方表示）
-- スコアが4/5: **"icon_text"**（まずまず、両方表示が安全）
-- スコアが5/5: **"icon"**（完璧、アイコンのみでOK）
-
-ただし、q4_tap_error >= 4（よく押し間違える）の場合は、スコアに関わらず "icon_text" を推奨
-
-### presentation.buttons（個別ボタンの表示）
-- menu: "icon"（よく使う操作なのでアイコンで十分）
-- addTask: presentation.global と同じ
-- default: presentation.global と同じ
-
-上記の基準に従って、合理的で一貫性のあるJSON設定を生成してください。
+上記の方法に従って、ユーザーの選択に基づいた合理的で一貫性のあるJSON設定を生成してください。
 必ずJSONのみを出力し、前後に説明文を含めないでください。`;
   }
 
   /**
    * ボタンの表示方法（icon | text | icon_text）を事前アンケートから判断するための簡易プロンプトを作成
+   * 注：新しいUI比較テスト形式では、このメソッドは使用されません。
    */
   buildPresentationPrompt(answers: PreSurveyAnswers, buttonKey?: string): string {
-    return `次のユーザー属性データを参照し、ボタン（${buttonKey ?? 'default'}）の表示方法として最も適切だと判断するキーワードを1つだけ返してください。返す値の候補は: "icon", "text", "icon_text" のいずれかです。出力はそのキーワードのみとしてください。\n\nデータ:\n- q1_confidence: ${answers.q1_confidence}\n- q2_preference: ${answers.q2_preference}\n- q3_text_issue: ${answers.q3_text_issue}\n- q4_tap_error: ${answers.q4_tap_error}\n- q5_priority: ${answers.q5_priority}\n- q6_icon_score: ${answers.q6_icon_score}\n`;
+    const iconScore = answers.icon_score;
+    const comparisons = JSON.stringify(answers.ui_comparisons);
+    return `次のユーザーのUI比較テスト結果とアイコンスコアを参照し、ボタン（${buttonKey ?? 'default'}）の表示方法として最も適切だと判断するキーワードを1つだけ返してください。返す値の候補は: "icon", "text", "icon_text" のいずれかです。出力はそのキーワードのみとしてください。\n\nデータ:\n- icon_score: ${iconScore}\n- ui_comparisons: ${comparisons}\n`;
   }
 
   private validateResponse(response: unknown): GeminiResponseExtended {
@@ -439,11 +454,11 @@ export class GeminiService {
       const pres = responseObj["presentation"];
       if (pres && typeof pres === "object") {
         try {
-          const presObj = pres as Record<string, any>;
+          const presObj = pres as Record<string, unknown>;
           console.log("🎨 presentation 設定を処理中:", presObj);
           
-          const buttons = presObj.buttons && typeof presObj.buttons === "object" ? presObj.buttons : { default: "icon" };
-          const global = presObj.global || presObj.default || "icon";
+          const buttons = presObj.buttons && typeof presObj.buttons === "object" ? (presObj.buttons as Record<string, PresentationMode>) : { default: "icon" as PresentationMode };
+          const global = (presObj.global as PresentationMode) || (presObj.default as PresentationMode) || ("icon" as PresentationMode);
           
           validated.presentation = { buttons, global } as PresentationConfig;
           console.log("  ✅ presentation 設定を適用:", validated.presentation);
@@ -476,86 +491,112 @@ export class GeminiService {
 
   /**
    * ルールベースのUI設定生成（フォールバック用）
-   * アンケート結果から論理的にUI設定を生成
+   * UI比較テストの結果から論理的にUI設定を生成
    */
   private generateRuleBasedConfig(answers: PreSurveyAnswers): GeminiResponseExtended {
     console.log("🔧 ルールベースのUI設定を生成中...");
     
-    const iconScoreNum = this.parseIconScore(answers.q6_icon_score);
+    const iconScoreNum = this.parseIconScore(answers.icon_score);
+    const comparisons = answers.ui_comparisons;
     
-    // layout: 自信度と情報量の好みから判断
-    let layout: "novice" | "standard" | "expert" = "standard";
-    if (answers.q1_confidence <= 2 || answers.q2_preference >= 4) {
-      layout = "novice";
-    } else if (answers.q1_confidence >= 4 && answers.q2_preference <= 2) {
-      layout = "expert";
-    }
+    // カテゴリーごとにスコアを集計（novice寄り=0, expert寄り=1）
+    const categoryScores: Record<string, number[]> = {
+      button: [],
+      text: [],
+      layout: [],
+      presentation: [],
+      description: [],
+      input: [],
+    };
     
-    // text: 文字サイズの見やすさから判断
-    let text: "novice" | "standard" | "expert" = "standard";
-    if (answers.q3_text_issue >= 4) {
-      text = "novice"; // 大きい文字が必要
-    } else if (answers.q3_text_issue <= 2) {
-      text = "expert"; // 小さい文字でもOK
-    }
+    // UI_COMPARISON_QUESTIONSから各カテゴリーのスコアを計算
+    UI_COMPARISON_QUESTIONS.forEach((question) => {
+      const userChoice = comparisons[question.questionId];
+      const mapping = (CATEGORY_TO_UI_MAPPING as Record<string, Record<string, string>>)[question.category];
+      
+      if (!mapping || !userChoice) return;
+      
+      const chosenStyle = mapping[`option${userChoice}`]; // "novice" or "expert"
+      const score = chosenStyle === "expert" ? 1 : 0;
+      
+      // カテゴリーにマッピング
+      if (question.category.includes("button")) {
+        categoryScores.button.push(score);
+      } else if (question.category.includes("text")) {
+        categoryScores.text.push(score);
+      } else if (question.category.includes("layout") || question.category.includes("card")) {
+        categoryScores.layout.push(score);
+      } else if (question.category.includes("icon") || question.category.includes("menu")) {
+        categoryScores.presentation.push(score);
+      } else if (question.category.includes("description")) {
+        categoryScores.description.push(score);
+      } else if (question.category.includes("input")) {
+        categoryScores.input.push(score);
+      }
+    });
     
-    // button: 誤タップの頻度から判断
-    let button: "novice" | "standard" | "expert" = "standard";
-    if (answers.q4_tap_error >= 4) {
-      button = "novice"; // 大きなボタンが必要
-    } else if (answers.q4_tap_error <= 2) {
-      button = "expert"; // 小さなボタンでもOK
-    }
+    // 各カテゴリーの平均スコアから設定を決定
+    const determineStyle = (scores: number[]): "novice" | "standard" | "expert" => {
+      if (scores.length === 0) return "standard";
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      if (avg <= 0.33) return "novice";
+      if (avg >= 0.67) return "expert";
+      return "standard";
+    };
     
-    // input: 誤タップと自信度の組み合わせ
-    let input: "novice" | "standard" | "expert" = "standard";
-    if (answers.q4_tap_error >= 4 || answers.q1_confidence <= 2) {
-      input = "novice";
-    } else if (answers.q4_tap_error <= 2 && answers.q1_confidence >= 4) {
-      input = "expert";
-    }
+    const layout = determineStyle(categoryScores.layout);
+    const text = determineStyle(categoryScores.text);
+    const button = determineStyle(categoryScores.button);
+    const input = determineStyle([...categoryScores.input, ...categoryScores.button]); // inputはbuttonと関連
+    const description = determineStyle(categoryScores.description);
     
-    // description: 自信度と優先順位から判断
-    let description: "novice" | "standard" | "expert" = "standard";
-    if (answers.q1_confidence <= 2 || answers.q5_priority >= 4) {
-      description = "novice"; // 詳細な説明が必要
-    } else if (answers.q1_confidence >= 4 && answers.q5_priority <= 2) {
-      description = "expert"; // 簡潔でOK
-    }
-    
-    // presentation.global: アイコンスコアと誤タップから判断
+    // presentation.global: アイコンスコアとUI選択から判断
     let global: PresentationMode = "icon_text";
+    const presentationScore = categoryScores.presentation.length > 0
+      ? categoryScores.presentation.reduce((a, b) => a + b, 0) / categoryScores.presentation.length
+      : 0.5;
+    
     if (iconScoreNum <= 2) {
       global = "text";
     } else if (iconScoreNum === 3) {
       global = "icon_text";
-    } else if (iconScoreNum === 4) {
-      global = "icon_text"; // 安全のため両方表示
-    } else if (iconScoreNum === 5) {
-      global = "icon";
+    } else if (iconScoreNum >= 4) {
+      // presentationScoreを参考に
+      if (presentationScore >= 0.7) {
+        global = "icon";
+      } else {
+        global = "icon_text";
+      }
     }
     
-    // 誤タップが多い場合は icon_text を強制
-    if (answers.q4_tap_error >= 4 && global === "icon") {
-      global = "icon_text";
+    // menuボタンの設定：q8_menu_styleの選択を反映
+    let menuPresentation: PresentationMode = "icon"; // デフォルトはアイコンのみ
+    const menuStyleChoice = comparisons["q8_menu_style"];
+    if (menuStyleChoice === "A") {
+      // optionA: アイコンのみ
+      menuPresentation = "icon";
+    } else if (menuStyleChoice === "B") {
+      // optionB: テキスト付き
+      menuPresentation = "icon_text";
     }
     
     const presentation: PresentationConfig = {
       global,
       buttons: {
-        menu: "icon", // メニューは使用頻度が高いのでアイコンのみ
+        menu: menuPresentation,
         addTask: global,
         default: global,
       },
     };
     
     const reasons = {
-      layout: `自信度${answers.q1_confidence}、情報量好み${answers.q2_preference}から判断`,
-      text: `文字サイズの見やすさ${answers.q3_text_issue}から判断`,
-      button: `誤タップ頻度${answers.q4_tap_error}から判断`,
-      input: `誤タップ${answers.q4_tap_error}と自信度${answers.q1_confidence}の組み合わせ`,
-      description: `自信度${answers.q1_confidence}と優先順位${answers.q5_priority}から判断`,
-      presentation: `アイコンスコア${answers.q6_icon_score}と誤タップ頻度${answers.q4_tap_error}から判断`,
+      layout: `レイアウト関連の質問でのユーザー選択から判断（平均スコア: ${categoryScores.layout.length > 0 ? (categoryScores.layout.reduce((a,b)=>a+b,0)/categoryScores.layout.length).toFixed(2) : 'N/A'}）`,
+      text: `テキスト関連の質問でのユーザー選択から判断（平均スコア: ${categoryScores.text.length > 0 ? (categoryScores.text.reduce((a,b)=>a+b,0)/categoryScores.text.length).toFixed(2) : 'N/A'}）`,
+      button: `ボタン関連の質問でのユーザー選択から判断（平均スコア: ${categoryScores.button.length > 0 ? (categoryScores.button.reduce((a,b)=>a+b,0)/categoryScores.button.length).toFixed(2) : 'N/A'}）`,
+      input: `入力フィールド関連の質問でのユーザー選択から判断`,
+      description: `説明文関連の質問でのユーザー選択から判断（平均スコア: ${categoryScores.description.length > 0 ? (categoryScores.description.reduce((a,b)=>a+b,0)/categoryScores.description.length).toFixed(2) : 'N/A'}）`,
+      presentation_global: `アイコンスコア${answers.icon_score}（${iconScoreNum}/5点）とプレゼンテーション関連の質問から判断。スコアに基づき${global}を選択。`,
+      presentation_menu: `q8_menu_style（メニューの表示）でオプション${menuStyleChoice ?? 'N/A'}を選択したため、${menuPresentation}に設定。`,
     };
     
     const config: GeminiResponseExtended = {
