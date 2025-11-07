@@ -32,6 +32,12 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
 
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [currentStep, setCurrentStep] = useState<"ui_comparison" | "icon_test">("ui_comparison");
+  
+  // UI比較テストの現在の質問番号（0始まり）
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  
+  const totalQuestions = UI_COMPARISON_QUESTIONS.length;
+  const currentQuestion = UI_COMPARISON_QUESTIONS[currentQuestionIndex];
 
   // アイコンテスト用のアイコン配列
   const iconTestIcons = [
@@ -51,19 +57,36 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
     newAnswers[index] = value;
     setIconTestAnswers(newAnswers);
   };
-
+  
+  // 次の質問へ
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    }
+  };
+  
+  // 前の質問へ
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+  
+  // 最後の質問でアイコンテストへ進む
   const handleNextToIconTest = () => {
-    // すべてのUI比較質問に回答されているかチェック
-    const allAnswered = UI_COMPARISON_QUESTIONS.every(
-      (q) => uiComparisons[q.questionId]
-    );
-    
-    if (!allAnswered) {
-      alert("すべての質問にお答えください。");
+    // 現在の質問に回答しているかチェック
+    if (!uiComparisons[currentQuestion.questionId]) {
+      alert("この質問にお答えください。");
       return;
     }
     
     setCurrentStep("icon_test");
+  };
+  
+  // UI比較テストに戻る
+  const handleBackToComparison = () => {
+    setCurrentStep("ui_comparison");
+    setCurrentQuestionIndex(totalQuestions - 1); // 最後の質問に戻る
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -128,93 +151,149 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
           </h2>
 
           {currentStep === "ui_comparison" ? (
-            // UI比較アンケート
-            <div className="space-y-8">
-              <p className="text-gray-600 mb-4">
-                以下の10問について、どちらのUIが操作しやすいと感じるか選択してください。
-              </p>
-              {UI_COMPARISON_QUESTIONS.map((question, index) => (
-                <div key={question.questionId} className="border-b pb-6">
-                  <h3 className="text-lg font-semibold mb-4">
-                    {index + 1}. {question.description}
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* オプション A */}
-                    <div
-                      onClick={() => handleUIComparisonChange(question.questionId, "A")}
-                      className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                        uiComparisons[question.questionId] === "A"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center mb-3">
-                        <input
-                          type="radio"
-                          name={question.questionId}
-                          value="A"
-                          checked={uiComparisons[question.questionId] === "A"}
-                          onChange={() => handleUIComparisonChange(question.questionId, "A")}
-                          className="mr-2"
-                        />
-                        <span className="font-semibold">オプション A</span>
-                      </div>
-                      {/* 画像のプレースホルダー */}
-                      <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
-                        <span className="text-gray-400">画像: {question.optionA.imagePath}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {question.optionA.description}
-                      </p>
-                    </div>
+            // UI比較アンケート（1問ずつ表示）
+            <div className="space-y-6">
+              {/* 進捗表示 */}
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-600">
+                    質問 {currentQuestionIndex + 1} / {totalQuestions}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    {Math.round((currentQuestionIndex / totalQuestions) * 100)}%
+                  </span>
+                </div>
+                {/* プログレスバー */}
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(currentQuestionIndex / totalQuestions) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
 
-                    {/* オプション B */}
-                    <div
-                      onClick={() => handleUIComparisonChange(question.questionId, "B")}
-                      className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
-                        uiComparisons[question.questionId] === "B"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <div className="flex items-center mb-3">
-                        <input
-                          type="radio"
-                          name={question.questionId}
-                          value="B"
-                          checked={uiComparisons[question.questionId] === "B"}
-                          onChange={() => handleUIComparisonChange(question.questionId, "B")}
-                          className="mr-2"
-                        />
-                        <span className="font-semibold">オプション B</span>
-                      </div>
-                      {/* 画像のプレースホルダー */}
-                      <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
-                        <span className="text-gray-400">画像: {question.optionB.imagePath}</span>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        {question.optionB.description}
-                      </p>
+              <p className="text-gray-600 mb-4">
+                どちらのUIが操作しやすいと感じるか選択してください。
+              </p>
+
+              {/* 現在の質問 */}
+              <div className="border-b pb-6">
+                <h3 className="text-lg font-semibold mb-4">
+                  {currentQuestion.description}
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* オプション A */}
+                  <div
+                    onClick={() => handleUIComparisonChange(currentQuestion.questionId, "A")}
+                    className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                      uiComparisons[currentQuestion.questionId] === "A"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="radio"
+                        name={currentQuestion.questionId}
+                        value="A"
+                        checked={uiComparisons[currentQuestion.questionId] === "A"}
+                        onChange={() => handleUIComparisonChange(currentQuestion.questionId, "A")}
+                        className="mr-2"
+                      />
+                      <span className="font-semibold">オプション A</span>
                     </div>
+                    {/* 画像のプレースホルダー */}
+                    <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
+                      <span className="text-gray-400">画像: {currentQuestion.optionA.imagePath}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {currentQuestion.optionA.description}
+                    </p>
+                  </div>
+
+                  {/* オプション B */}
+                  <div
+                    onClick={() => handleUIComparisonChange(currentQuestion.questionId, "B")}
+                    className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                      uiComparisons[currentQuestion.questionId] === "B"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center mb-3">
+                      <input
+                        type="radio"
+                        name={currentQuestion.questionId}
+                        value="B"
+                        checked={uiComparisons[currentQuestion.questionId] === "B"}
+                        onChange={() => handleUIComparisonChange(currentQuestion.questionId, "B")}
+                        className="mr-2"
+                      />
+                      <span className="font-semibold">オプション B</span>
+                    </div>
+                    {/* 画像のプレースホルダー */}
+                    <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
+                      <span className="text-gray-400">画像: {currentQuestion.optionB.imagePath}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {currentQuestion.optionB.description}
+                    </p>
                   </div>
                 </div>
-              ))}
+              </div>
 
-              <div className="flex justify-center pt-6">
-                <AppButton
-                  uiConfig={{
-                    layout: "standard",
-                    text: "standard",
-                    button: "standard",
-                    input: "standard",
-                    description: "standard",
-                  }}
-                  onClick={handleNextToIconTest}
-                  variant="primary"
-                >
-                  次へ（アイコンテスト）
-                </AppButton>
+              {/* ナビゲーションボタン */}
+              <div className={`flex pt-6 ${currentQuestionIndex === 0 ? 'justify-end' : 'justify-between'}`}>
+                {/* 戻るボタン（1問目では非表示） */}
+                {currentQuestionIndex > 0 && (
+                  <AppButton
+                    uiConfig={{
+                      layout: "standard",
+                      text: "standard",
+                      button: "standard",
+                      input: "standard",
+                      description: "standard",
+                    }}
+                    onClick={handlePreviousQuestion}
+                    variant="secondary"
+                  >
+                    戻る
+                  </AppButton>
+                )}
+
+                {/* 次へボタン or アイコンテストへ */}
+                {currentQuestionIndex < totalQuestions - 1 ? (
+                  <AppButton
+                    uiConfig={{
+                      layout: "standard",
+                      text: "standard",
+                      button: "standard",
+                      input: "standard",
+                      description: "standard",
+                    }}
+                    onClick={handleNextQuestion}
+                    variant="primary"
+                    disabled={!uiComparisons[currentQuestion.questionId]}
+                  >
+                    次へ
+                  </AppButton>
+                ) : (
+                  <AppButton
+                    uiConfig={{
+                      layout: "standard",
+                      text: "standard",
+                      button: "standard",
+                      input: "standard",
+                      description: "standard",
+                    }}
+                    onClick={handleNextToIconTest}
+                    variant="primary"
+                    disabled={!uiComparisons[currentQuestion.questionId]}
+                  >
+                    次へ（アイコンテスト）
+                  </AppButton>
+                )}
               </div>
             </div>
           ) : (
@@ -251,7 +330,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                     input: "standard",
                     description: "standard",
                   }}
-                  onClick={() => setCurrentStep("ui_comparison")}
+                  onClick={handleBackToComparison}
                   variant="secondary"
                   type="button"
                 >

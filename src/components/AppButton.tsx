@@ -20,9 +20,14 @@ const variantClass: Record<Variant, string> = {
   ghost: "bg-transparent text-gray-700",
 };
 
-export const AppButton: React.FC<AppButtonProps> = ({ variant = "primary", uiConfig, presentation, className = "", children, ...rest }) => {
+export const AppButton: React.FC<AppButtonProps> = ({ variant = "primary", uiConfig, presentation, className = "", children, disabled, ...rest }) => {
   const personal = uiConfig ? personalizationConfig["button"][uiConfig.button] : "";
-  const base = `inline-flex items-center justify-center px-2 py-2 min-w-4 w-fit cursor-pointer rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2`;
+  const base = `inline-flex items-center justify-center px-2 py-2 min-w-4 w-fit rounded-full shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all`;
+  
+  // disabled状態のスタイル
+  const disabledStyles = disabled 
+    ? "opacity-50 cursor-not-allowed pointer-events-none" 
+    : "cursor-pointer hover:opacity-90";
 
   // normalize children
   const childArray = React.Children.toArray(children);
@@ -47,7 +52,11 @@ export const AppButton: React.FC<AppButtonProps> = ({ variant = "primary", uiCon
   );
 
   return (
-    <button className={`${base} ${variantClass[variant]} ${personal} ${className}`} {...rest}>
+    <button 
+      className={`${base} ${variantClass[variant]} ${personal} ${disabledStyles} ${className}`} 
+      disabled={disabled}
+      {...rest}
+    >
       {renderedChildren}
     </button>
   );
