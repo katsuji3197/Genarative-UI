@@ -26,6 +26,7 @@ type AppState =
   | "completed";
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [appState, setAppState] = useState<AppState>("pre-survey");
   const [showPreSurvey, setShowPreSurvey] = useState(false);
   const [showPostSurvey, setShowPostSurvey] = useState(false);
@@ -112,7 +113,8 @@ export default function Home() {
   }, []);
   const [postSurveyShown, setPostSurveyShown] = useState(false);
   const [isUILoading, setIsUILoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState('');
+  const [isUIReady, setIsUIReady] = useState(false);
+  const [experimentStarted, setExperimentStarted] = useState(false);
 
   // タスクの進捗変更を受け取るハンドラ
   const handleTasksChange = useCallback((tasks: Task[]) => {
@@ -168,6 +170,9 @@ export default function Home() {
   }, [experimentConditions, experimentData, postSurveyShown]);
 
   useEffect(() => {
+    // クライアントサイドでマウントされたことを記録
+    setMounted(true);
+    
     // クライアントサイドでのみparticipantIdを生成
     const id = experimentModeService.generateParticipantId();
     setParticipantId(id);
@@ -177,6 +182,7 @@ export default function Home() {
 
     // 実験群・統制群に関わらず事前アンケートを表示
     setShowPreSurvey(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 初期化は一度だけ実行
 
   const handlePreSurveySubmit = useCallback(
@@ -191,7 +197,6 @@ export default function Home() {
       console.log("🎯 実験モード:", mode);
       // UI生成中の読み込みを表示
       setIsUILoading(true);
-      setLoadingMessage('UIを生成しています...');
 
       if (mode === 'experimental') {
         // 実験群の場合：Gemini APIでUI構成を取得
@@ -229,8 +234,7 @@ export default function Home() {
       } else {
         // 統制群の場合でも読み込み画面を表示して遅延させる（5秒）
         console.log("🔧 統制群: 読み込みを偽装（待機）");
-        setLoadingMessage('読み込み中...');
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 12000));
         const standardConfig = {
           layout: 'standard' as const,
           text: 'standard' as const,
@@ -242,21 +246,31 @@ export default function Home() {
         experimentData.setUIConfig(standardConfig);
       }
 
-      // 読み込み終了 -> ダッシュボード表示、クリック計測開始
+      // UI構築完了 -> LoadingScreenで実験説明を表示し、ユーザーが開始ボタンを押すのを待つ
       setIsUILoading(false);
-      setAppState("dashboard");
-      experimentData.startClickTracking?.();
-      
-      // すべての実験タスクの計測を開始
-      console.log("🎯 実験タスクの計測を開始");
-      experimentData.startExperimentTask?.('username_change');
-      experimentData.startExperimentTask?.('kanban_drag');
-      experimentData.startExperimentTask?.('kanban_edit');
-      experimentData.startExperimentTask?.('kanban_delete');
-      experimentData.startExperimentTask?.('kanban_add');
+      setIsUIReady(true);
     },
-    [experimentData.setUIConfig]
+    [experimentData]
   );
+
+  // ユーザーが「実験を開始」ボタンをクリックしたときのハンドラー
+  const handleStartExperiment = useCallback(() => {
+    console.log("🚀 実験開始ボタンがクリックされました");
+    
+    setExperimentStarted(true);
+    setAppState("dashboard");
+    
+    // クリック計測開始
+    experimentData.startClickTracking?.();
+    
+    // すべての実験タスクの計測を開始
+    console.log("🎯 実験タスクの計測を開始");
+    experimentData.startExperimentTask?.('username_change');
+    experimentData.startExperimentTask?.('kanban_drag');
+    experimentData.startExperimentTask?.('kanban_edit');
+    experimentData.startExperimentTask?.('kanban_delete');
+    experimentData.startExperimentTask?.('kanban_add');
+  }, [experimentData]);
 
   const handleProfileClick = useCallback(() => {
     setAppState("profile");
@@ -344,6 +358,11 @@ export default function Home() {
     );
   }
 
+  // クライアントサイドでマウントされるまで何も表示しない（ハイドレーションエラー回避）
+  if (!mounted) {
+    return null;
+  }
+
   // participantIdが生成されるまでローディング表示
   if (!participantId) {
     return (
@@ -372,8 +391,13 @@ export default function Home() {
         />
       )}
 
-      {/* UI生成中の読み込み画面 */}
-      {isUILoading && <LoadingScreen uiConfig={uiConfig} message={loadingMessage} />}
+      {/* UI生成中の読み込み画面 & 実験開始待機画面 */}
+      {(isUILoading || (isUIReady && !experimentStarted)) && (
+        <LoadingScreen 
+          isUIReady={isUIReady}
+          onStartExperiment={handleStartExperiment}
+        />
+      )}
 
       {/* メインコンテンツ */}
       {appState === "dashboard" && (
@@ -426,7 +450,7 @@ export default function Home() {
           <ul className="space-y-2 text-sm">
             {Object.keys(conditionLabels).map((key) => (
               <li key={key} className="flex items-start">
-                <input type="checkbox" checked={!!experimentConditions[key]} readOnly className="mr-2 mt-0.5 flex-shrink-0" />
+                <input type="checkbox" checked={!!experimentConditions[key]} readOnly className="mr-2 mt-0.5 shrink-0" />
                 <div className="flex flex-col">
                   <span>{conditionLabels[key].label}</span>
                   <p className="text-xs text-gray-500">{conditionLabels[key].description}</p>
@@ -447,10 +471,8 @@ export default function Home() {
 
       {/* デバッグ情報（開発時のみ表示） */}
       {process.env.NODE_ENV === "development" && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white p-3 rounded-lg text-sm">
-          <div>Mode: {experimentModeService.getMode()}</div>
-          <div>Participant ID: {participantId}</div>
-          <div>Clicks: {experimentData.clickCount}</div>
+        <div className="fixed bottom-2 right-2 text-xs text-gray-500 opacity-60">
+          Mode: {experimentModeService.getMode()} | ID: {participantId.slice(0, 8)}... | Clicks: {experimentData.clickCount}
         </div>
       )}
     </div>
