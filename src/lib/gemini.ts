@@ -17,13 +17,48 @@ export class GeminiService {
   private configCache: Map<string, GeminiResponseExtended>;
   private iconScoreCache: Map<string, string>;
   private cacheExpiry: number = 5 * 60 * 1000; // 5分でキャッシュ有効期限
+  private maxRetries: number = 30; // 最大リトライ回数
+  private retryDelayBase: number = 1000; // リトライ待機時間のベース（ミリ秒）
 
   constructor() {
     this.apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
     this.apiUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent";
     this.configCache = new Map();
     this.iconScoreCache = new Map();
+  }
+
+  /**
+   * 指数バックオフでリトライするfetchラッパー
+   * 503エラーの場合のみリトライを実行
+   */
+  private async fetchWithRetry(
+    url: string,
+    options: RequestInit,
+    retryCount: number = 0
+  ): Promise<Response> {
+    try {
+      const response = await fetch(url, options);
+
+      // 503エラーの場合のみリトライ
+      if (response.status === 503 && retryCount < this.maxRetries) {
+        const delay = this.retryDelayBase * Math.pow(2, retryCount); // 指数バックオフ
+        console.log(`🔄 503エラーが発生しました。${delay}ms後にリトライします（${retryCount + 1}/${this.maxRetries}）`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.fetchWithRetry(url, options, retryCount + 1);
+      }
+
+      return response;
+    } catch (error) {
+      // ネットワークエラーの場合も503と同様にリトライ
+      if (retryCount < this.maxRetries) {
+        const delay = this.retryDelayBase * Math.pow(2, retryCount);
+        console.log(`🔄 ネットワークエラーが発生しました。${delay}ms後にリトライします（${retryCount + 1}/${this.maxRetries}）`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return this.fetchWithRetry(url, options, retryCount + 1);
+      }
+      throw error;
+    }
   }
 
   /**
@@ -131,7 +166,7 @@ export class GeminiService {
 正解数のみを「X/5」の形式で返してください（例：「3/5」）。`;
 
     try {
-      const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+      const response = await this.fetchWithRetry(`${this.apiUrl}?key=${this.apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -235,7 +270,7 @@ export class GeminiService {
     console.log("📝 送信するプロンプト:", prompt);
 
     try {
-      const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+      const response = await this.fetchWithRetry(`${this.apiUrl}?key=${this.apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
