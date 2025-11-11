@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import AppButton from "./AppButton";
 import { PreSurveyAnswers } from "@/types";
 import { geminiService } from "@/lib/gemini";
@@ -144,7 +145,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
 
   return (
     <div className="fixed inset-0 bg-neutral-100 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full m-4 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-w-[60vw] w-full m-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-6 text-center">
             {currentStep === "ui_comparison" ? "UI比較アンケート" : "アイコンテスト"}
@@ -192,24 +193,19 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <div className="flex items-center mb-3">
-                      <input
-                        type="radio"
-                        name={currentQuestion.questionId}
-                        value="A"
-                        checked={uiComparisons[currentQuestion.questionId] === "A"}
-                        onChange={() => handleUIComparisonChange(currentQuestion.questionId, "A")}
-                        className="mr-2"
+                    {/* 画像表示 */}
+                    <div className="w-full h-80 bg-gray-100 rounded flex items-center justify-center overflow-hidden relative">
+                      <Image
+                        src={currentQuestion.optionA.imagePath}
+                        alt="オプション A"
+                        fill
+                        className="object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
                       />
-                      <span className="font-semibold">オプション A</span>
                     </div>
-                    {/* 画像のプレースホルダー */}
-                    <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
-                      <span className="text-gray-400">画像: {currentQuestion.optionA.imagePath}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {currentQuestion.optionA.description}
-                    </p>
                   </div>
 
                   {/* オプション B */}
@@ -221,24 +217,19 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <div className="flex items-center mb-3">
-                      <input
-                        type="radio"
-                        name={currentQuestion.questionId}
-                        value="B"
-                        checked={uiComparisons[currentQuestion.questionId] === "B"}
-                        onChange={() => handleUIComparisonChange(currentQuestion.questionId, "B")}
-                        className="mr-2"
+                    {/* 画像表示 */}
+                    <div className="w-full h-80 bg-gray-100 rounded flex items-center justify-center overflow-hidden relative">
+                      <Image
+                        src={currentQuestion.optionB.imagePath}
+                        alt="オプション B"
+                        fill
+                        className="object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
                       />
-                      <span className="font-semibold">オプション B</span>
                     </div>
-                    {/* 画像のプレースホルダー */}
-                    <div className="w-full h-48 bg-gray-100 rounded flex items-center justify-center mb-3">
-                      <span className="text-gray-400">画像: {currentQuestion.optionB.imagePath}</span>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {currentQuestion.optionB.description}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -291,7 +282,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                     variant="primary"
                     disabled={!uiComparisons[currentQuestion.questionId]}
                   >
-                    次へ（アイコンテスト）
+                    次へ
                   </AppButton>
                 )}
               </div>

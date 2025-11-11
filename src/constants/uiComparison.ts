@@ -24,142 +24,142 @@ export interface UIComparisonQuestion {
 export const UI_COMPARISON_QUESTIONS: UIComparisonQuestion[] = [
   // ボタンサイズに関する質問（2問）
   {
-    questionId: "q1_button_size",
-    description: "ボタンのサイズについて、どちらが押しやすいと感じますか？",
+    questionId: "q1_message_size",
+    description: "どちらのメッセージアプリのUIが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/button_large.png",
-      description: "大きなボタン（48px×48px）を持つUI。ボタン同士の間隔も広く、誤タップしにくい設計。",
+      imagePath: "/survey-images/1-a.png",
+      description: "ユーザ名が20px、本文が16px、メッセージ間の余白が16pxのコンパクトな見た目のメッセージアプリのUI。",
     },
     optionB: {
-      imagePath: "/images/comparison/button_small.png",
-      description: "コンパクトなボタン（32px×32px）を持つUI。画面スペースを効率的に使用し、多くの情報を表示できる。",
+      imagePath: "/survey-images/1-b.png",
+      description: "ユーザ名が24px、本文が20px、メッセージ間の余白が24pxの比較的ゆったりとした見た目のメッセージアプリのUI。",
     },
-    category: "button_size",
+    category: "message_size",
   },
   {
-    questionId: "q2_button_spacing",
-    description: "ボタンの配置について、どちらが操作しやすいと感じますか？",
+    questionId: "q2_button_style",
+    description: "どちらのショッピングアプリのUIが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/button_wide_spacing.png",
-      description: "ボタン間の余白が広い（16px）UI。各ボタンが独立して見え、押し間違えにくい。",
+      imagePath: "/survey-images/2-a.png",
+      description: "メニューボタンはハンバーガーアイコンのみ、カテゴリの詳細へ遷移するボタンも矢印のみとシンプルなUI。",
     },
     optionB: {
-      imagePath: "/images/comparison/button_tight_spacing.png",
-      description: "ボタン間の余白が狭い（8px）UI。コンパクトにまとまり、一覧性が高い。",
+      imagePath: "/survey-images/2-b.png",
+      description: "メニューボタンは「メニュー」と書かれたボタン、カテゴリの詳細へ遷移するボタンも「もっと見る」と書かれたUI。",
     },
-    category: "button_spacing",
+    category: "button_style",
   },
 
   // テキストサイズに関する質問（2問）
   {
-    questionId: "q3_text_size",
-    description: "文字の大きさについて、どちらが読みやすいと感じますか？",
+    questionId: "q3_navigation_style",
+    description: "どちらのカレンダーアプリのUIが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/text_large.png",
-      description: "大きな文字サイズ（18px）のUI。テキストが読みやすく、視認性が高い。",
+      imagePath: "/survey-images/3-a.png",
+      description: "アイコンのみのボトムナビゲーション。",
     },
     optionB: {
-      imagePath: "/images/comparison/text_small.png",
-      description: "標準的な文字サイズ（14px）のUI。一画面により多くの情報を表示できる。",
+      imagePath: "/survey-images/3-b.png",
+      description: "アイコンとテキストの両方を表示したボトムナビゲーション。",
     },
-    category: "text_size",
+    category: "navigation_style",
   },
   {
-    questionId: "q4_text_hierarchy",
-    description: "文字の強弱について、どちらが見やすいと感じますか？",
+    questionId: "q4_todo_list_style",
+    description: "どちらのTo Doリストアプリが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/text_high_contrast.png",
-      description: "見出しと本文の差が大きい（見出し24px、本文14px）UI。情報の階層が明確。",
+      imagePath: "/survey-images/4-a.png",
+      description: "To Doを追加するボタンはプラスマークのみが描かれている。タスクの編集ボタンもペンマークのみ。",
     },
     optionB: {
-      imagePath: "/images/comparison/text_low_contrast.png",
-      description: "見出しと本文の差が小さい（見出し16px、本文14px）UI。統一感があり落ち着いた印象。",
+      imagePath: "/survey-images/4-b.png",
+      description: "To Doを追加するボタンはプラスマークの右に追加と書かれたボタン、タスクの編集ボタンもペンマークの右に編集と書かれている。",
     },
-    category: "text_hierarchy",
+    category: "todo_list_style",
   },
 
   // レイアウトの密度に関する質問（2問）
   {
-    questionId: "q5_layout_density",
-    description: "情報の詰まり具合について、どちらが使いやすいと感じますか？",
+    questionId: "q5_input_style",
+    description: "どちらの経路案内が使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/layout_spacious.png",
-      description: "余白が多い（padding 24px）ゆったりしたレイアウト。各要素が独立して見やすい。",
+      imagePath: "/survey-images/5-a.png",
+      description: "インプット、検索ボタンの高さが64pxの経路案内のUI。文字サイズは32px。",
     },
     optionB: {
-      imagePath: "/images/comparison/layout_compact.png",
-      description: "余白が少ない（padding 12px）コンパクトなレイアウト。一覧性が高く、多くの情報を表示。",
+      imagePath: "/survey-images/5-b.png",
+      description: "インプット、検索ボタンの高さが90pxの経路案内のUI。文字サイズは32px。",
     },
-    category: "layout_density",
+    category: "input_style",
   },
   {
-    questionId: "q6_card_design",
-    description: "カードの表示について、どちらが見やすいと感じますか？",
+    questionId: "q6_button_gap",
+    description: "どちらのボタン一覧が使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/card_large.png",
-      description: "大きなカード（最小高さ120px）で情報を表示。各項目がゆったりと配置されている。",
+      imagePath: "/survey-images/6-a.png",
+      description: "ボタン同士の横のgapは12px、縦のgapは16pxのボタン一覧のUI。",
     },
     optionB: {
-      imagePath: "/images/comparison/card_small.png",
-      description: "コンパクトなカード（最小高さ80px）で情報を表示。一画面に多くの項目を表示できる。",
+      imagePath: "/survey-images/6-b.png",
+      description: "ボタン同士の横のgapは38px、縦のgapは48pxのボタン一覧のUI。",
     },
-    category: "card_size",
+    category: "button_gap",
   },
 
   // アイコンとテキストの表示に関する質問（2問）
   {
-    questionId: "q7_icon_presentation",
-    description: "ボタンの表示方法について、どちらがわかりやすいと感じますか？",
+    questionId: "q7_download_icon",
+    description: "どちらの公式サイトが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/icon_only.png",
-      description: "アイコンのみを表示したボタン。シンプルでスッキリした見た目。",
+      imagePath: "/survey-images/7-a.png",
+      description: "「ログイン」「ダウンロード」ボタンがあり、どちらもテキストのみで表示されている。",
     },
     optionB: {
-      imagePath: "/images/comparison/icon_with_text.png",
-      description: "アイコンとテキストの両方を表示したボタン。機能が明確でわかりやすい。",
+      imagePath: "/survey-images/7-b.png",
+      description: "「ログイン」「ダウンロード」ボタンがあり、どちらもアイコンとテキストの両方を表示されている。",
     },
-    category: "icon_presentation",
+    category: "download_icon",
   },
   {
-    questionId: "q8_menu_style",
-    description: "メニューの表示について、どちらが使いやすいと感じますか？",
+    questionId: "q8_text_style",
+    description: "どちらのWebサイトが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/menu_icon.png",
-      description: "アイコンのみのメニュー。画面を広く使え、見た目がモダン。",
+      imagePath: "/survey-images/8-a.png",
+      description: "タイトルがstone-400・20px・Regularで表示、製品名がstone-800・24px・Boldで表示されている。タイトルと製品のgapが24px、製品どうしのgapが16px。",
     },
     optionB: {
-      imagePath: "/images/comparison/menu_text.png",
-      description: "テキストラベル付きのメニュー。各項目の意味が一目でわかる。",
+      imagePath: "/survey-images/8-b.png",
+      description: "タイトルがstone-400・20px・Regularで表示、製品名がstone-800・20px・Boldで表示されている。タイトルと製品のgapが16px、製品どうしのgapが8px。",
     },
-    category: "menu_style",
+    category: "text_style",
   },
 
   // 説明文の詳細度に関する質問（2問）
   {
-    questionId: "q9_description_detail",
-    description: "説明文の量について、どちらが好ましいと感じますか？",
+    questionId: "q9_control_button_style",
+    description: "どちらのコントロールセンターのボタンが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/description_detailed.png",
-      description: "詳細な説明文（2-3行）を表示。操作方法や注意点が丁寧に記載されている。",
+      imagePath: "/survey-images/9-a.png",
+      description: "Wi-Fiボタン、Bluetoothボタン、機内モードボタン、懐中電灯ボタンがあり、いずれもアイコンのみで表示されていて、状態はアイコンの見た目で判断できるようになっている。",
     },
     optionB: {
-      imagePath: "/images/comparison/description_brief.png",
-      description: "簡潔な説明文（1行）を表示。最小限の情報で画面がスッキリしている。",
+      imagePath: "/survey-images/9-b.png",
+      description: "Wi-Fiボタン、Bluetoothボタン、機内モードボタン、懐中電灯ボタンがあり、いずれもアイコンとテキストの両方が表示されていて、状態はテキストとアイコンの見た目で判別できるようになっている。",
     },
-    category: "description_detail",
+    category: "control_button_style",
   },
   {
-    questionId: "q10_input_label",
-    description: "入力フィールドの説明について、どちらがわかりやすいと感じますか？",
+    questionId: "q10_message_input",
+    description: "どちらのメッセージアプリの入力フィールドが使いやすいと感じますか？",
     optionA: {
-      imagePath: "/images/comparison/input_verbose.png",
-      description: "入力フィールドに詳しいラベルとヒントテキストが表示されている。何を入力すべきか明確。",
+      imagePath: "/survey-images/10-a.png",
+      description: "入力フィールドに「メッセージを入力」というラベルとヒントテキストが表示されている。送信ボタンはアイコンのみ。",
     },
     optionB: {
-      imagePath: "/images/comparison/input_minimal.png",
-      description: "入力フィールドに簡潔なラベルのみ表示。シンプルで洗練された印象。",
+      imagePath: "/survey-images/10-b.png",
+      description: "入力フィールドに「メッセージを入力」というラベルのみ表示。送信ボタンはアイコンとテキストの両方が表示されている。",
     },
-    category: "input_label",
+    category: "message_input",
   },
 ];
 
@@ -168,45 +168,45 @@ export const UI_COMPARISON_QUESTIONS: UIComparisonQuestion[] = [
  * Geminiがユーザーの選択を分析する際の参考情報
  */
 export const CATEGORY_TO_UI_MAPPING = {
-  button_size: {
-    optionA: "novice", // 大きなボタン → 初心者向け
-    optionB: "expert", // 小さなボタン → 上級者向け
+  message_size: {
+    optionA: "expert", // コンパクトな見た目（20px, 16px, gap 16px）→ 上級者向け
+    optionB: "normal", // ゆったりした見た目（24px, 20px, gap 24px）→ 初心者向け
   },
-  button_spacing: {
-    optionA: "novice", // 広い間隔 → 初心者向け
-    optionB: "expert", // 狭い間隔 → 上級者向け
-  },
-  text_size: {
-    optionA: "novice", // 大きな文字 → 初心者向け
-    optionB: "expert", // 小さな文字 → 上級者向け
-  },
-  text_hierarchy: {
-    optionA: "novice", // 強い階層 → 初心者向け
-    optionB: "expert", // 弱い階層 → 上級者向け
-  },
-  layout_density: {
-    optionA: "novice", // ゆったり → 初心者向け
-    optionB: "expert", // コンパクト → 上級者向け
-  },
-  card_size: {
-    optionA: "novice", // 大きなカード → 初心者向け
-    optionB: "expert", // 小さなカード → 上級者向け
-  },
-  icon_presentation: {
-    optionA: "expert", // アイコンのみ → 上級者向け
-    optionB: "novice", // アイコン+テキスト → 初心者向け
-  },
-  menu_style: {
+  button_style: {
     optionA: "expert", // アイコンのみ → 上級者向け
     optionB: "novice", // テキスト付き → 初心者向け
   },
-  description_detail: {
-    optionA: "novice", // 詳細 → 初心者向け
-    optionB: "expert", // 簡潔 → 上級者向け
+  navigation_style: {
+    optionA: "expert", // アイコンのみ → 上級者向け
+    optionB: "normal", // アイコン+テキスト → 初心者向け
   },
-  input_label: {
-    optionA: "novice", // 詳細 → 初心者向け
-    optionB: "expert", // 簡潔 → 上級者向け
+  todo_list_style: {
+    optionA: "expert", // アイコンのみ → 上級者向け
+    optionB: "novice", // アイコン+テキスト → 初心者向け
+  },
+  input_style: {
+    optionA: "normal", // コンパクト（高さ64px）→ 上級者向け
+    optionB: "novice", // 大きい（高さ90px）→ 初心者向け
+  },
+  button_gap: {
+    optionA: "expert", // 狭い間隔（12px/16px）→ 上級者向け
+    optionB: "novice", // 広い間隔（38px/48px）→ 初心者向け
+  },
+  download_icon: {
+    optionA: "expert", // テキストのみ → 初心者向け
+    optionB: "normal", // アイコン+テキスト → 初心者向け（わかりやすい）
+  },
+  text_style: {
+    optionA: "normalt", // 大きい文字・ゆったり（24px, gap 24px/16px）→ 初心者向け
+    optionB: "expert", // 小さい文字・コンパクト（20px, gap 16px/8px）→ 上級者向け
+  },
+  control_button_style: {
+    optionA: "expert", // アイコンのみ → 上級者向け
+    optionB: "normal", // アイコン+テキスト → 初心者向け
+  },
+  message_input: {
+    optionA: "expert", // ラベル+ヒント、送信ボタンはアイコンのみ → 初心者向け
+    optionB: "normal", // ラベルのみ、送信ボタンはアイコン+テキスト → 上級者向け
   },
 };
 
