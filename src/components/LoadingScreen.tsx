@@ -15,12 +15,12 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-50 p-8 relative">
       <div className="max-w-3xl w-full bg-white rounded-2xl shadow-2xl p-10 space-y-8">
         {/* 感謝メッセージ */}
-        <div className="text-center space-y-3">
+        <div className="text-center">
           <div className="w-20 h-20 mx-auto rounded-full bg-linear-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
             ✓
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">
-            アンケートにご協力いただき、ありがとうございました！
+          <h1 className="text-2xl font-bold text-gray-800">
+            アンケートにご協力いただき、<br />ありがとうございました！
           </h1>
           <p className="text-lg text-gray-600">
             あなたに最適化されたUIを構築しています
@@ -59,7 +59,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
                 実験タスクについて
               </h3>
               <p className="text-gray-600 leading-relaxed ml-7">
-                これから表示される実験タスクを全て完了することで、実験が終了します。
+                実験タスクを全て完了することで、実験が終了します。
                 各タスクは順番に表示されますので、一つずつ丁寧に取り組んでください。
               </p>
             </div>
@@ -72,6 +72,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
               <p className="text-gray-600 leading-relaxed ml-7">
                 残りの実験タスクを確認したい場合は、画面の左端にマウスカーソルを持っていくことで、
                 タスク一覧を表示できます。進捗状況もそこで確認できます。
+                この画面でタスクの種類と挙動を確認しておいてください。
               </p>
             </div>
 
@@ -86,15 +87,6 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
               </p>
             </div>
           </div>
-        </div>
-
-        {/* 注意事項 */}
-        <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">ℹ️ ヒント：</span>
-            実験中は、できるだけ自然に操作してください。
-            間違えても問題ありませんので、リラックスして取り組んでください。
-          </p>
         </div>
       </div>
 
