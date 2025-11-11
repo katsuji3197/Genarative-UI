@@ -407,7 +407,7 @@ ${JSON.stringify(CATEGORY_TO_UI_MAPPING, null, 2)}
    - **presentation_global**: アイコンスコアと関連する質問（q7_icon_presentation）の選択を具体的に記載
    - **presentation_menu**: q8_menu_styleでの選択とその理由を具体的に記載
 
-上記の方法に従って、ユーザーの選択に基づいた合理的で一貫性のあるJSON設定を生成してください。
+上記の方法に従って、ユーザーの一つの選択から判断せず、ユーザーの全ての選択を複合的に考えた合理的で一貫性のあるJSON設定を生成してください。
 必ずJSONのみを出力し、前後に説明文を含めないでください。`;
   }
 

@@ -199,7 +199,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                         src={currentQuestion.optionA.imagePath}
                         alt="オプション A"
                         fill
-                        className="object-contain"
+                        className="object-contain cursor-event-none"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
@@ -223,7 +223,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                         src={currentQuestion.optionB.imagePath}
                         alt="オプション B"
                         fill
-                        className="object-contain"
+                        className="object-contain cursor-event-none"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';

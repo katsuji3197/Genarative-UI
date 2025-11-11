@@ -19,7 +19,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({
           <div className="w-20 h-20 mx-auto rounded-full bg-linear-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
             ✓
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-bold text-gray-800 pt-12">
             アンケートにご協力いただき、<br />ありがとうございました！
           </h1>
           <p className="text-lg text-gray-600">
