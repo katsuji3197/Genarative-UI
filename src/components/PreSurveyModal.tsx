@@ -148,7 +148,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
       <div className="bg-white rounded-lg shadow-xl max-w-[60vw] w-full m-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-6 text-center">
-            {currentStep === "ui_comparison" ? "UI比較アンケート" : "アイコンテスト"}
+            {currentStep === "ui_comparison" ? "UI比較アンケート" : "アイコンの質問"}
           </h2>
 
           {currentStep === "ui_comparison" ? (
@@ -361,7 +361,7 @@ export const PreSurveyModal: React.FC<PreSurveyModalProps> = ({ onSubmit }) => {
                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                       </svg>
-                      採点中...
+                      準備中...
                     </span>
                   ) : (
                     "回答を送信"

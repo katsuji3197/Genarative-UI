@@ -470,11 +470,11 @@ export default function Home() {
       </div>
 
       {/* デバッグ情報（開発時のみ表示） */}
-      {process.env.NODE_ENV === "development" && (
+      {/* {process.env.NODE_ENV === "development" && (
         <div className="fixed bottom-2 right-2 text-xs text-gray-500 opacity-60">
           Mode: {experimentModeService.getMode()} | ID: {participantId.slice(0, 8)}... | Clicks: {experimentData.clickCount}
         </div>
-      )}
+      )} */}
     </div>
   );
 }
