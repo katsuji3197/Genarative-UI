@@ -121,8 +121,20 @@ const DashboardComponent: React.FC<DashboardProps> = ({
     }
 
     const base = (personalizationConfig as any)["presentation"] || {};
-    if (buttonKey && base.buttons && base.buttons[buttonKey]) return base.buttons[buttonKey];
-    return base.global || base.default || "icon";
+    
+    // buttonKeyが指定されている場合、そのキーの設定を確認
+    if (buttonKey && base.buttons && base.buttons[buttonKey]) {
+      return base.buttons[buttonKey];
+    }
+    
+    // globalが存在する場合はそれを返す
+    if (base.global) return base.global;
+    
+    // defaultが存在する場合はそれを返す
+    if (base.default) return base.default;
+    
+    // 最終フォールバックとして "icon_text" を返す
+    return "icon_text";
   };
 
   // Ask Gemini for a recommendation for a specific button (async, sets presentationOverride)

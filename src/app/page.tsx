@@ -234,7 +234,7 @@ export default function Home() {
       } else {
         // 統制群の場合でも読み込み画面を表示して遅延させる（5秒）
         console.log("🔧 統制群: 読み込みを偽装（待機）");
-        await new Promise((resolve) => setTimeout(resolve, 12000));
+        await new Promise((resolve) => setTimeout(resolve, 30000));
         const standardConfig = {
           layout: 'standard' as const,
           text: 'standard' as const,

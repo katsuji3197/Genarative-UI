@@ -32,15 +32,13 @@
     }
   },
   "presentation": {
-    "global": "icon-text",
+    "global": "icon_text",
     "buttons": {
-      "menu": "icon-text",
-      "addTask": {
-        "novice": "text-icon",
-        "standard": "icon-text",
-        "expert": "icon"
-      },
-      "default": "icon"
-    }
+      "menu": "icon_text",
+      "addTask": "icon_text",
+      "edit": "icon_text",
+      "delete": "icon_text"
+    },
+    "default": "icon"
   }
 }
